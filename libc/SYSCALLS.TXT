@@ -331,6 +331,8 @@ int     __set_tls:set_thread_area(void*) mips,mips64
 
 # x86-specific
 int     __set_thread_area:set_thread_area(void*) x86
+int    ioperm(unsigned long, unsigned long, int) x86,x86_64
+int    iopl(int) x86,x86_64
 
 # vdso stuff.
 int clock_gettime(clockid_t, timespec*)                 arm,mips,mips64,x86
