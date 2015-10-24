@@ -10,9 +10,8 @@ ENTRY(__epoll_pwait)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__epoll_pwait)
-.hidden _C_LABEL(__epoll_pwait)
+.hidden __epoll_pwait

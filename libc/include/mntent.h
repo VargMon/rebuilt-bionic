@@ -45,23 +45,21 @@
 #define MNTOPT_NOAUTO   "noauto"
 
 
-struct mntent
-{
-    char* mnt_fsname;
-    char* mnt_dir;
-    char* mnt_type;
-    char* mnt_opts;
-    int mnt_freq;
-    int mnt_passno;
+struct mntent {
+  char* mnt_fsname;
+  char* mnt_dir;
+  char* mnt_type;
+  char* mnt_opts;
+  int mnt_freq;
+  int mnt_passno;
 };
-
 
 __BEGIN_DECLS
 
-
-struct mntent* getmntent(FILE*);
-FILE* setmntent(const char*, const char*);
 int endmntent(FILE*);
+struct mntent* getmntent(FILE*);
+struct mntent* getmntent_r(FILE*, struct mntent*, char*, int);
+FILE* setmntent(const char*, const char*);
 
 int addmntent(FILE *fp, const struct mntent *mnt);
 char *hasmntopt(const struct mntent *mnt, const char *opt);

@@ -26,8 +26,10 @@
  * SUCH DAMAGE.
  */
 
-#include <unistd.h>
 #include <errno.h>
+#include <malloc.h>
+#include <string.h>
+#include <unistd.h>
 
 int __getcwd(char* buf, size_t size);
 

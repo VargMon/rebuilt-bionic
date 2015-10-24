@@ -17,6 +17,9 @@
 #ifndef LIBC_BIONIC_DLMALLOC_H_
 #define LIBC_BIONIC_DLMALLOC_H_
 
+#include <sys/cdefs.h>
+#include <stddef.h>
+
 /* Configure dlmalloc. */
 #define HAVE_GETPAGESIZE 1
 #define MALLOC_INSPECT_ALL 1
@@ -29,6 +32,26 @@
 #define USE_SPIN_LOCKS 0
 #define DLMALLOC_EXPORT __LIBC_HIDDEN__
 #define DEFAULT_MMAP_THRESHOLD (64U * 1024U)
+
+#define malloc_getpagesize getpagesize()
+
+#if !defined(__LP64__)
+/* dlmalloc_usable_size and dlmalloc were exposed in the NDK and some
+ * apps actually used them. Rename these functions out of the way
+ * for 32 bit architectures so that ndk_cruft.cpp can expose
+ * compatibility shims with these names.
+ */
+#define dlmalloc_usable_size dlmalloc_usable_size_real
+#define dlmalloc dlmalloc_real
+#endif
+
+/* These two symbols are exported on devices that use dlmalloc.
+ * In order to be consistent across all devices, they will
+ * be exported everywhere. Move the real symbols out of the way
+ * so that ndk_cruft.cpp can export these symbols.
+ */
+#define dlmalloc_inspect_all dlmalloc_inspect_all_real
+#define dlmalloc_trim dlmalloc_trim_real
 
 /* Include the proper definitions. */
 #include "../upstream-dlmalloc/malloc.h"

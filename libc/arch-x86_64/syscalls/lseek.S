@@ -9,11 +9,9 @@ ENTRY(lseek)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(lseek)
 
-    .globl _C_LABEL(lseek64)
-    .equ _C_LABEL(lseek64), _C_LABEL(lseek)
+ALIAS_SYMBOL(lseek64, lseek)

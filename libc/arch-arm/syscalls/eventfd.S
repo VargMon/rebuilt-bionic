@@ -3,6 +3,12 @@
 #include <private/bionic_asm.h>
 
 ENTRY(eventfd)
-    ldr     ip, =__NR_eventfd2
-    b       __bionic_syscall_eabi
+    mov     ip, r7
+    ldr     r7, =__NR_eventfd2
+    swi     #0
+    mov     r7, ip
+    cmn     r0, #(MAX_ERRNO + 1)
+    bxls    lr
+    neg     r0, r0
+    b       __set_errno_internal
 END(eventfd)

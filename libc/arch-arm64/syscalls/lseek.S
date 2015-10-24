@@ -3,22 +3,14 @@
 #include <private/bionic_asm.h>
 
 ENTRY(lseek)
-    stp     x29, x30, [sp, #-16]!
-    mov     x29,  sp
-    str     x8,       [sp, #-16]!
-
     mov     x8, __NR_lseek
     svc     #0
 
-    ldr     x8,       [sp], #16
-    ldp     x29, x30, [sp], #16
-
     cmn     x0, #(MAX_ERRNO + 1)
     cneg    x0, x0, hi
-    b.hi    __set_errno
+    b.hi    __set_errno_internal
 
     ret
 END(lseek)
 
-    .globl _C_LABEL(lseek64)
-    .equ _C_LABEL(lseek64), _C_LABEL(lseek)
+ALIAS_SYMBOL(lseek64, lseek)

@@ -4,12 +4,14 @@
 
 ENTRY(__sched_getaffinity)
     pushl   %ebx
-    pushl   %ecx
-    pushl   %edx
-    .cfi_def_cfa_offset 12
+    .cfi_def_cfa_offset 8
     .cfi_rel_offset ebx, 0
-    .cfi_rel_offset ecx, 4
-    .cfi_rel_offset edx, 8
+    pushl   %ecx
+    .cfi_adjust_cfa_offset 4
+    .cfi_rel_offset ecx, 0
+    pushl   %edx
+    .cfi_adjust_cfa_offset 4
+    .cfi_rel_offset edx, 0
     mov     16(%esp), %ebx
     mov     20(%esp), %ecx
     mov     24(%esp), %edx
@@ -19,9 +21,8 @@ ENTRY(__sched_getaffinity)
     jb      1f
     negl    %eax
     pushl   %eax
-    call    __set_errno
+    call    __set_errno_internal
     addl    $4, %esp
-    orl     $-1, %eax
 1:
     popl    %edx
     popl    %ecx

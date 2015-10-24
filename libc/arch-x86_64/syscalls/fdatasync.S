@@ -9,8 +9,7 @@ ENTRY(fdatasync)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(fdatasync)

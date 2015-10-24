@@ -30,12 +30,14 @@
 #define _SYS_USER_H_
 
 #include <sys/cdefs.h>
+#include <limits.h> /* For PAGE_SIZE. */
+#include <stddef.h> /* For size_t. */
 
 __BEGIN_DECLS
 
 #if __i386__
 
-struct user_i387_struct {
+struct user_fpregs_struct {
   long cwd;
   long swd;
   long twd;
@@ -82,7 +84,7 @@ struct user_regs_struct {
 struct user {
   struct user_regs_struct regs;
   int u_fpvalid;
-  struct user_i387_struct i387;
+  struct user_fpregs_struct i387;
   unsigned long int u_tsize;
   unsigned long int u_dsize;
   unsigned long int u_ssize;
@@ -90,8 +92,8 @@ struct user {
   unsigned long start_stack;
   long int signal;
   int reserved;
-  unsigned long u_ar0;
-  struct user_i387_struct* u_fpstate;
+  struct user_regs_struct* u_ar0;
+  struct user_fpregs_struct* u_fpstate;
   unsigned long magic;
   char u_comm[32];
   int u_debugreg[8];
@@ -99,15 +101,15 @@ struct user {
 
 #elif defined(__x86_64__)
 
-struct user_i387_struct {
+struct user_fpregs_struct {
   unsigned short cwd;
   unsigned short swd;
-  unsigned short twd;
+  unsigned short ftw;
   unsigned short fop;
   __u64 rip;
   __u64 rdp;
   __u32 mxcsr;
-  __u32 mxcsr_mask;
+  __u32 mxcr_mask;
   __u32 st_space[32];
   __u32 xmm_space[64];
   __u32 padding[24];
@@ -145,7 +147,7 @@ struct user {
   struct user_regs_struct regs;
   int u_fpvalid;
   int pad0;
-  struct user_i387_struct i387;
+  struct user_fpregs_struct i387;
   unsigned long int u_tsize;
   unsigned long int u_dsize;
   unsigned long int u_ssize;
@@ -154,8 +156,8 @@ struct user {
   long int signal;
   int reserved;
   int pad1;
-  unsigned long u_ar0;
-  struct user_i387_struct* u_fpstate;
+  struct user_regs_struct* u_ar0;
+  struct user_fpregs_struct* u_fpstate;
   unsigned long magic;
   char u_comm[32];
   unsigned long u_debugreg[8];
@@ -174,7 +176,7 @@ struct user {
   unsigned long start_data;
   unsigned long start_stack;
   long int signal;
-  unsigned long u_ar0;
+  void* u_ar0;
   unsigned long magic;
   char u_comm[32];
 };

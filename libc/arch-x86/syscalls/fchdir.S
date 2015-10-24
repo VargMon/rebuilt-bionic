@@ -4,7 +4,7 @@
 
 ENTRY(fchdir)
     pushl   %ebx
-    .cfi_def_cfa_offset 4
+    .cfi_def_cfa_offset 8
     .cfi_rel_offset ebx, 0
     mov     8(%esp), %ebx
     movl    $__NR_fchdir, %eax
@@ -13,9 +13,8 @@ ENTRY(fchdir)
     jb      1f
     negl    %eax
     pushl   %eax
-    call    __set_errno
+    call    __set_errno_internal
     addl    $4, %esp
-    orl     $-1, %eax
 1:
     popl    %ebx
     ret

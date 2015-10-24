@@ -29,15 +29,36 @@
 #ifndef _PRIVATE_BIONIC_ASM_H_
 #define _PRIVATE_BIONIC_ASM_H_
 
-#if !defined(__mips__)
-/* <machine/asm.h> causes trouble on mips by including regdefs.h. */
-#include <machine/asm.h>
-#endif
-
 #include <asm/unistd.h> /* For system call numbers. */
 #define MAX_ERRNO 4095  /* For recognizing system call error returns. */
 
-/* TODO: add ENTRY_PRIVATE. */
-/* TODO: add ASM_ALIAS macro. */
+#define __bionic_asm_custom_entry(f)
+#define __bionic_asm_custom_end(f)
+#define __bionic_asm_function_type @function
+
+#include <machine/asm.h>
+
+#define ENTRY(f) \
+    .text; \
+    .globl f; \
+    .align __bionic_asm_align; \
+    .type f, __bionic_asm_function_type; \
+    f: \
+    __bionic_asm_custom_entry(f); \
+    .cfi_startproc \
+
+#define END(f) \
+    .cfi_endproc; \
+    .size f, .-f; \
+    __bionic_asm_custom_end(f) \
+
+/* Like ENTRY, but with hidden visibility. */
+#define ENTRY_PRIVATE(f) \
+    ENTRY(f); \
+    .hidden f \
+
+#define ALIAS_SYMBOL(alias, original) \
+    .globl alias; \
+    .equ alias, original
 
 #endif /* _PRIVATE_BIONIC_ASM_H_ */

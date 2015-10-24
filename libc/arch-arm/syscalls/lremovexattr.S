@@ -3,6 +3,12 @@
 #include <private/bionic_asm.h>
 
 ENTRY(lremovexattr)
-    ldr     ip, =__NR_lremovexattr
-    b       __bionic_syscall_eabi
+    mov     ip, r7
+    ldr     r7, =__NR_lremovexattr
+    swi     #0
+    mov     r7, ip
+    cmn     r0, #(MAX_ERRNO + 1)
+    bxls    lr
+    neg     r0, r0
+    b       __set_errno_internal
 END(lremovexattr)

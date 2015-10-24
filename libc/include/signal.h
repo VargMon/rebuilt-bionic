@@ -29,10 +29,11 @@
 #ifndef _SIGNAL_H_
 #define _SIGNAL_H_
 
-#include <errno.h>
+#include <asm/sigcontext.h>
+#include <limits.h>
+#include <machine/pthread_types.h>
+#include <machine/timespec.h>
 #include <sys/cdefs.h>
-#include <limits.h>		/* For LONG_BIT */
-#include <string.h>		/* For memset() */
 #include <sys/types.h>
 
 #if defined(__LP64__) || defined(__mips__)
@@ -47,23 +48,35 @@
 #  include <linux/signal.h>
 #endif
 
+#include <sys/ucontext.h>
+#define __BIONIC_HAVE_UCONTEXT_T
+
 __BEGIN_DECLS
 
 typedef int sig_atomic_t;
 
-/* TODO: 64-bit: we should probably #undef the uapi NSIG and add a unit test that NSIG == _NSIG && NSIG >= 64. */
-#ifndef _NSIG
-#  define _NSIG 64
-#endif
-#ifndef NSIG
-#  define NSIG _NSIG
+/* The arm and x86 kernel header files don't define _NSIG. */
+#ifndef _KERNEL__NSIG
+#define _KERNEL__NSIG 64
 #endif
 
+/* Userspace's NSIG is the kernel's _NSIG + 1. */
+#define _NSIG (_KERNEL__NSIG + 1)
+#define NSIG _NSIG
+
+/* We take a few real-time signals for ourselves. May as well use the same names as glibc. */
+#define SIGRTMIN (__libc_current_sigrtmin())
+#define SIGRTMAX (__libc_current_sigrtmax())
+extern int __libc_current_sigrtmin(void);
+extern int __libc_current_sigrtmax(void);
+
 extern const char* const sys_siglist[];
-extern const char* const sys_signame[];
+extern const char* const sys_signame[]; /* BSD compatibility. */
 
 typedef __sighandler_t sig_t; /* BSD compatibility. */
 typedef __sighandler_t sighandler_t; /* glibc compatibility. */
+
+#define si_timerid si_tid /* glibc compatibility. */
 
 #if defined(__LP64__)
 
@@ -92,17 +105,15 @@ struct sigaction {
 
 extern int sigaction(int, const struct sigaction*, struct sigaction*);
 
-extern sighandler_t signal(int, sighandler_t);
-extern sighandler_t bsd_signal(int, sighandler_t);
-extern sighandler_t sysv_signal(int, sighandler_t);
+_BIONIC_NOT_BEFORE_21(extern sighandler_t signal(int, sighandler_t);)
 
 extern int siginterrupt(int, int);
 
-extern int sigaddset(sigset_t*, int);
-extern int sigdelset(sigset_t*, int);
-extern int sigemptyset(sigset_t*);
-extern int sigfillset(sigset_t*);
-extern int sigismember(const sigset_t*, int);
+_BIONIC_NOT_BEFORE_21(extern int sigaddset(sigset_t*, int);)
+_BIONIC_NOT_BEFORE_21(extern int sigdelset(sigset_t*, int);)
+_BIONIC_NOT_BEFORE_21(extern int sigemptyset(sigset_t*);)
+_BIONIC_NOT_BEFORE_21(extern int sigfillset(sigset_t*);)
+_BIONIC_NOT_BEFORE_21(extern int sigismember(const sigset_t*, int);)
 
 extern int sigpending(sigset_t*) __nonnull((1));
 extern int sigprocmask(int, const sigset_t*, sigset_t*);
@@ -117,6 +128,17 @@ extern int sigaltstack(const stack_t*, stack_t*);
 
 extern void psiginfo(const siginfo_t*, const char*);
 extern void psignal(int, const char*);
+
+extern int pthread_kill(pthread_t, int);
+extern int pthread_sigmask(int, const sigset_t*, sigset_t*);
+
+extern int sigqueue(pid_t, int, const union sigval);
+extern int sigtimedwait(const sigset_t*, siginfo_t*, const struct timespec*);
+extern int sigwaitinfo(const sigset_t*, siginfo_t*);
+
+#if __ANDROID_API__ < 21
+#include <android/legacy_signal_inlines.h>
+#endif
 
 __END_DECLS
 

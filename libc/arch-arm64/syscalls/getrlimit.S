@@ -3,22 +3,14 @@
 #include <private/bionic_asm.h>
 
 ENTRY(getrlimit)
-    stp     x29, x30, [sp, #-16]!
-    mov     x29,  sp
-    str     x8,       [sp, #-16]!
-
     mov     x8, __NR_getrlimit
     svc     #0
 
-    ldr     x8,       [sp], #16
-    ldp     x29, x30, [sp], #16
-
     cmn     x0, #(MAX_ERRNO + 1)
     cneg    x0, x0, hi
-    b.hi    __set_errno
+    b.hi    __set_errno_internal
 
     ret
 END(getrlimit)
 
-    .globl _C_LABEL(getrlimit64)
-    .equ _C_LABEL(getrlimit64), _C_LABEL(getrlimit)
+ALIAS_SYMBOL(getrlimit64, getrlimit)

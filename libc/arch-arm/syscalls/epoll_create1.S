@@ -3,6 +3,12 @@
 #include <private/bionic_asm.h>
 
 ENTRY(epoll_create1)
-    ldr     ip, =__NR_epoll_create1
-    b       __bionic_syscall_eabi
+    mov     ip, r7
+    ldr     r7, =__NR_epoll_create1
+    swi     #0
+    mov     r7, ip
+    cmn     r0, #(MAX_ERRNO + 1)
+    bxls    lr
+    neg     r0, r0
+    b       __set_errno_internal
 END(epoll_create1)

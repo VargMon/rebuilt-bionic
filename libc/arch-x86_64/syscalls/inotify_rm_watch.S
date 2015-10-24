@@ -9,8 +9,7 @@ ENTRY(inotify_rm_watch)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(inotify_rm_watch)

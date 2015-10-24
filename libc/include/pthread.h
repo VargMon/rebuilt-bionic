@@ -29,23 +29,22 @@
 #ifndef _PTHREAD_H_
 #define _PTHREAD_H_
 
-#include <time.h>
-#include <signal.h>
-#include <sched.h>
 #include <limits.h>
+#include <machine/pthread_types.h>
+#include <sched.h>
+#include <sys/cdefs.h>
 #include <sys/types.h>
+#include <time.h>
 
 typedef struct {
-  int volatile value;
+#if defined(__LP64__)
+  int32_t __private[10];
+#else
+  int32_t __private[1];
+#endif
 } pthread_mutex_t;
 
-#define  __PTHREAD_MUTEX_INIT_VALUE            0
-#define  __PTHREAD_RECURSIVE_MUTEX_INIT_VALUE  0x4000
-#define  __PTHREAD_ERRORCHECK_MUTEX_INIT_VALUE 0x8000
-
-#define  PTHREAD_MUTEX_INITIALIZER             {__PTHREAD_MUTEX_INIT_VALUE}
-#define  PTHREAD_RECURSIVE_MUTEX_INITIALIZER   {__PTHREAD_RECURSIVE_MUTEX_INIT_VALUE}
-#define  PTHREAD_ERRORCHECK_MUTEX_INITIALIZER  {__PTHREAD_ERRORCHECK_MUTEX_INIT_VALUE}
+typedef long pthread_mutexattr_t;
 
 enum {
     PTHREAD_MUTEX_NORMAL = 0,
@@ -58,46 +57,50 @@ enum {
     PTHREAD_MUTEX_DEFAULT = PTHREAD_MUTEX_NORMAL
 };
 
+#define PTHREAD_MUTEX_INITIALIZER { { ((PTHREAD_MUTEX_NORMAL & 3) << 14) } }
+#define PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP { { ((PTHREAD_MUTEX_RECURSIVE & 3) << 14) } }
+#define PTHREAD_ERRORCHECK_MUTEX_INITIALIZER_NP { { ((PTHREAD_MUTEX_ERRORCHECK & 3) << 14) } }
+
 typedef struct {
-  int volatile value;
+#if defined(__LP64__)
+  int32_t __private[12];
+#else
+  int32_t __private[1];
+#endif
 } pthread_cond_t;
 
-#define PTHREAD_COND_INITIALIZER  {0}
-
-typedef struct {
-  uint32_t flags;
-  void* stack_base;
-  size_t stack_size;
-  size_t guard_size;
-  int32_t sched_policy;
-  int32_t sched_priority;
-} pthread_attr_t;
-
-typedef long pthread_mutexattr_t;
 typedef long pthread_condattr_t;
 
-typedef int pthread_rwlockattr_t;
+#define PTHREAD_COND_INITIALIZER  { { 0 } }
 
 typedef struct {
-  pthread_mutex_t  lock;
-  pthread_cond_t   cond;
-  int              numLocks;
-  int              writerThreadId;
-  int              pendingReaders;
-  int              pendingWriters;
-  void*            reserved[4];  /* for future extensibility */
+#if defined(__LP64__)
+  int32_t __private[14];
+#else
+  int32_t __private[10];
+#endif
 } pthread_rwlock_t;
 
-#define PTHREAD_RWLOCK_INITIALIZER  { PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0, 0, 0, 0, { NULL, NULL, NULL, NULL } }
+typedef long pthread_rwlockattr_t;
+
+#define PTHREAD_RWLOCK_INITIALIZER  { { 0 } }
+
+enum {
+  PTHREAD_RWLOCK_PREFER_READER_NP = 0,
+  PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP = 1,
+};
 
 typedef int pthread_key_t;
-typedef long pthread_t;
 
-typedef volatile int pthread_once_t;
+typedef int pthread_once_t;
 
-#define PTHREAD_ONCE_INIT    0
+#define PTHREAD_ONCE_INIT 0
 
+#if defined(__LP64__)
+#define PTHREAD_STACK_MIN (4 * PAGE_SIZE)
+#else
 #define PTHREAD_STACK_MIN (2 * PAGE_SIZE)
+#endif
 
 #define PTHREAD_CREATE_DETACHED  0x00000001
 #define PTHREAD_CREATE_JOINABLE  0x00000000
@@ -127,11 +130,13 @@ int pthread_attr_setschedparam(pthread_attr_t*, const struct sched_param*) __non
 int pthread_attr_setschedpolicy(pthread_attr_t*, int) __nonnull((1));
 int pthread_attr_setscope(pthread_attr_t*, int) __nonnull((1));
 int pthread_attr_setstack(pthread_attr_t*, void*, size_t) __nonnull((1));
-int pthread_attr_setstacksize(pthread_attr_t * attr, size_t stack_size) __nonnull((1));
+int pthread_attr_setstacksize(pthread_attr_t*, size_t stack_size) __nonnull((1));
 
 int pthread_condattr_destroy(pthread_condattr_t*) __nonnull((1));
+int pthread_condattr_getclock(const pthread_condattr_t*, clockid_t*) __nonnull((1, 2));
 int pthread_condattr_getpshared(const pthread_condattr_t*, int*) __nonnull((1, 2));
 int pthread_condattr_init(pthread_condattr_t*) __nonnull((1));
+int pthread_condattr_setclock(pthread_condattr_t*, clockid_t) __nonnull((1));
 int pthread_condattr_setpshared(pthread_condattr_t*, int) __nonnull((1));
 
 int pthread_cond_broadcast(pthread_cond_t*) __nonnull((1));
@@ -155,12 +160,12 @@ int pthread_getschedparam(pthread_t, int*, struct sched_param*) __nonnull((2, 3)
 
 void* pthread_getspecific(pthread_key_t);
 
+pid_t pthread_gettid_np(pthread_t);
+
 int pthread_join(pthread_t, void**);
 
 int pthread_key_create(pthread_key_t*, void (*)(void*)) __nonnull((1));
 int pthread_key_delete(pthread_key_t);
-
-int pthread_kill(pthread_t, int);
 
 int pthread_mutexattr_destroy(pthread_mutexattr_t*) __nonnull((1));
 int pthread_mutexattr_getpshared(const pthread_mutexattr_t*, int*) __nonnull((1, 2));
@@ -171,17 +176,27 @@ int pthread_mutexattr_settype(pthread_mutexattr_t*, int) __nonnull((1));
 
 int pthread_mutex_destroy(pthread_mutex_t*) __nonnull((1));
 int pthread_mutex_init(pthread_mutex_t*, const pthread_mutexattr_t*) __nonnull((1));
+#if !defined(__LP64__)
+int pthread_mutex_lock(pthread_mutex_t*) /* __nonnull((1)) */;
+#else
 int pthread_mutex_lock(pthread_mutex_t*) __nonnull((1));
-int pthread_mutex_timedlock(pthread_mutex_t*, struct timespec*) __nonnull((1, 2));
+#endif
+int pthread_mutex_timedlock(pthread_mutex_t*, const struct timespec*) __nonnull((1, 2));
 int pthread_mutex_trylock(pthread_mutex_t*) __nonnull((1));
+#if !defined(__LP4__)
+int pthread_mutex_unlock(pthread_mutex_t*) /* __nonnull((1)) */;
+#else
 int pthread_mutex_unlock(pthread_mutex_t*) __nonnull((1));
+#endif
 
 int pthread_once(pthread_once_t*, void (*)(void)) __nonnull((1, 2));
 
+int pthread_rwlockattr_init(pthread_rwlockattr_t*) __nonnull((1));
 int pthread_rwlockattr_destroy(pthread_rwlockattr_t*) __nonnull((1));
 int pthread_rwlockattr_getpshared(const pthread_rwlockattr_t*, int*) __nonnull((1, 2));
-int pthread_rwlockattr_init(pthread_rwlockattr_t*) __nonnull((1));
 int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int) __nonnull((1));
+int pthread_rwlockattr_getkind_np(const pthread_rwlockattr_t*, int*) __nonnull((1, 2));
+int pthread_rwlockattr_setkind_np(pthread_rwlockattr_t*, int) __nonnull((1));
 
 int pthread_rwlock_destroy(pthread_rwlock_t*) __nonnull((1));
 int pthread_rwlock_init(pthread_rwlock_t*, const pthread_rwlockattr_t*) __nonnull((1));
@@ -193,15 +208,13 @@ int pthread_rwlock_trywrlock(pthread_rwlock_t*) __nonnull((1));
 int pthread_rwlock_unlock(pthread_rwlock_t *rwlock) __nonnull((1));
 int pthread_rwlock_wrlock(pthread_rwlock_t*) __nonnull((1));
 
-pthread_t pthread_self(void);
+pthread_t pthread_self(void) __pure2;
 
 int pthread_setname_np(pthread_t, const char*) __nonnull((2));
 
 int pthread_setschedparam(pthread_t, int, const struct sched_param*) __nonnull((3));
 
 int pthread_setspecific(pthread_key_t, const void*);
-
-int pthread_sigmask(int, const sigset_t*, sigset_t*);
 
 typedef void (*__pthread_cleanup_func_t)(void*);
 
@@ -232,32 +245,17 @@ extern void __pthread_cleanup_pop(__pthread_cleanup_t*, int);
 
 #if !defined(__LP64__)
 
-/* Deprecated by POSIX. TODO: support for LP64 but add deprecated attribute instead? */
-int pthread_attr_getstackaddr(const pthread_attr_t*, void**) __nonnull((1, 2)); /* deprecated */
-int pthread_attr_setstackaddr(pthread_attr_t*, void*) __nonnull((1)); /* deprecated */
-
-/* Bionic additions that are deprecated even in the 32-bit ABI. */
+// Bionic additions that are deprecated even in the 32-bit ABI.
+//
+// TODO: Remove them once chromium_org / NFC have switched over.
 int pthread_cond_timedwait_monotonic_np(pthread_cond_t*, pthread_mutex_t*, const struct timespec*);
 int pthread_cond_timedwait_monotonic(pthread_cond_t*, pthread_mutex_t*, const struct timespec*);
-#define HAVE_PTHREAD_COND_TIMEDWAIT_MONOTONIC 1
 
-/*
- * Like pthread_cond_timedwait except 'reltime' is relative to the current time.
- * TODO: not like glibc; include in LP64?
- */
-int pthread_cond_timedwait_relative_np(pthread_cond_t*, pthread_mutex_t*, const struct timespec*);
-#define HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE 1
+int pthread_cond_timedwait_relative_np(pthread_cond_t*, pthread_mutex_t*, const struct timespec*) /* TODO: __attribute__((deprecated("use pthread_cond_timedwait instead")))*/;
+#define HAVE_PTHREAD_COND_TIMEDWAIT_RELATIVE 1 /* TODO: stop defining this to push LP32 off this API sooner. */
+int pthread_cond_timeout_np(pthread_cond_t*, pthread_mutex_t*, unsigned) /* TODO: __attribute__((deprecated("use pthread_cond_timedwait instead")))*/;
 
-/* TODO: not like glibc; include in LP64? */
-int pthread_cond_timeout_np(pthread_cond_t*, pthread_mutex_t*, unsigned);
-
-/* Like pthread_mutex_lock(), but will wait up to 'msecs' milli-seconds
- * before returning. Same return values as pthread_mutex_trylock though, i.e.
- * returns EBUSY if the lock could not be acquired after the timeout expired.
- *
- * TODO: replace with pthread_mutex_timedlock_np for LP64.
- */
-int pthread_mutex_lock_timeout_np(pthread_mutex_t*, unsigned);
+int pthread_mutex_lock_timeout_np(pthread_mutex_t*, unsigned) __attribute__((deprecated("use pthread_mutex_timedlock instead")));
 
 #endif /* !defined(__LP64__) */
 

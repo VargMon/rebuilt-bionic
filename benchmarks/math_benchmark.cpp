@@ -14,15 +14,20 @@
  * limitations under the License.
  */
 
-#include "benchmark.h"
-
+#include <fenv.h>
 #include <math.h>
 
-// Avoid optimization.
-double d;
-double v;
+#include <benchmark/Benchmark.h>
 
-static void BM_math_sqrt(int iters) {
+#define AT_COMMON_VALS \
+    Arg(1234.0)->Arg(nan(""))->Arg(HUGE_VAL)->Arg(0.0)
+
+// Avoid optimization.
+volatile double d;
+volatile double v;
+
+BENCHMARK_NO_ARG(BM_math_sqrt);
+void BM_math_sqrt::Run(int iters) {
   StartBenchmarkTiming();
 
   d = 0.0;
@@ -33,9 +38,9 @@ static void BM_math_sqrt(int iters) {
 
   StopBenchmarkTiming();
 }
-BENCHMARK(BM_math_sqrt);
 
-static void BM_math_log10(int iters) {
+BENCHMARK_NO_ARG(BM_math_log10);
+void BM_math_log10::Run(int iters) {
   StartBenchmarkTiming();
 
   d = 0.0;
@@ -46,9 +51,9 @@ static void BM_math_log10(int iters) {
 
   StopBenchmarkTiming();
 }
-BENCHMARK(BM_math_log10);
 
-static void BM_math_logb(int iters) {
+BENCHMARK_NO_ARG(BM_math_logb);
+void BM_math_logb::Run(int iters) {
   StartBenchmarkTiming();
 
   d = 0.0;
@@ -59,4 +64,73 @@ static void BM_math_logb(int iters) {
 
   StopBenchmarkTiming();
 }
-BENCHMARK(BM_math_logb);
+
+BENCHMARK_WITH_ARG(BM_math_isinf, double)->AT_COMMON_VALS;
+void BM_math_isinf::Run(int iters, double value) {
+  StartBenchmarkTiming();
+
+  d = 0.0;
+  v = value;
+  for (int i = 0; i < iters; ++i) {
+    d += (isinf)(v);
+  }
+
+  StopBenchmarkTiming();
+}
+
+BENCHMARK_NO_ARG(BM_math_sin_fast);
+void BM_math_sin_fast::Run(int iters) {
+  StartBenchmarkTiming();
+
+  d = 1.0;
+  for (int i = 0; i < iters; ++i) {
+    d += sin(d);
+  }
+
+  StopBenchmarkTiming();
+}
+
+BENCHMARK_NO_ARG(BM_math_sin_feupdateenv);
+void BM_math_sin_feupdateenv::Run(int iters) {
+  StartBenchmarkTiming();
+
+  d = 1.0;
+  for (int i = 0; i < iters; ++i) {
+    fenv_t __libc_save_rm;
+    feholdexcept(&__libc_save_rm);
+    fesetround(FE_TONEAREST);
+    d += sin(d);
+    feupdateenv(&__libc_save_rm);
+  }
+
+  StopBenchmarkTiming();
+}
+
+BENCHMARK_NO_ARG(BM_math_sin_fesetenv);
+void BM_math_sin_fesetenv::Run(int iters) {
+  StartBenchmarkTiming();
+
+  d = 1.0;
+  for (int i = 0; i < iters; ++i) {
+    fenv_t __libc_save_rm;
+    feholdexcept(&__libc_save_rm);
+    fesetround(FE_TONEAREST);
+    d += sin(d);
+    fesetenv(&__libc_save_rm);
+  }
+
+  StopBenchmarkTiming();
+}
+
+BENCHMARK_WITH_ARG(BM_math_fpclassify, double)->AT_COMMON_VALS;
+void BM_math_fpclassify::Run(int iters, double value) {
+  StartBenchmarkTiming();
+
+  d = 0.0;
+  v = value;
+  for (int i = 0; i < iters; ++i) {
+    d += fpclassify(v);
+  }
+
+  StopBenchmarkTiming();
+}

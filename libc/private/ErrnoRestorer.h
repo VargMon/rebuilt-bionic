@@ -19,26 +19,25 @@
 
 #include <errno.h>
 
-typedef struct ErrnoRestorer ErrnoRestorer;
+#include "bionic_macros.h"
 
-struct ErrnoRestorer {
+class ErrnoRestorer {
+ public:
+  explicit ErrnoRestorer() : saved_errno_(errno) {
+  }
+
+  ~ErrnoRestorer() {
+    errno = saved_errno_;
+  }
+
+  void override(int new_errno) {
+    saved_errno_ = new_errno;
+  }
+
+ private:
   int saved_errno_;
+
+  DISALLOW_COPY_AND_ASSIGN(ErrnoRestorer);
 };
-
-static inline
-void ErrnoRestorer_init(ErrnoRestorer *er) {
-  er->saved_errno_ = errno;
-}
-
-static inline
-void ErrnoRestorer_fini(ErrnoRestorer *er) {
-  errno = er->saved_errno_;
-}
-
-static inline
-void ErrnoRestorer_override(ErrnoRestorer *er, int new_errno) {
-  er->saved_errno_ = new_errno;
-}
-
 
 #endif // ERRNO_RESTORER_H

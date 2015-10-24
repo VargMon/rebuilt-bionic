@@ -3,22 +3,14 @@
 #include <private/bionic_asm.h>
 
 ENTRY(ftruncate)
-    stp     x29, x30, [sp, #-16]!
-    mov     x29,  sp
-    str     x8,       [sp, #-16]!
-
     mov     x8, __NR_ftruncate
     svc     #0
 
-    ldr     x8,       [sp], #16
-    ldp     x29, x30, [sp], #16
-
     cmn     x0, #(MAX_ERRNO + 1)
     cneg    x0, x0, hi
-    b.hi    __set_errno
+    b.hi    __set_errno_internal
 
     ret
 END(ftruncate)
 
-    .globl _C_LABEL(ftruncate64)
-    .equ _C_LABEL(ftruncate64), _C_LABEL(ftruncate)
+ALIAS_SYMBOL(ftruncate64, ftruncate)

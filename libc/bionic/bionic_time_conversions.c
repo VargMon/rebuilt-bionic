@@ -28,24 +28,42 @@
 
 #include "private/bionic_time_conversions.h"
 
-bool timespec_from_timeval(struct timespec* ts, const struct timeval* tv) {
+#include "private/bionic_constants.h"
+
+bool timespec_from_timeval(timespec& ts, const timeval& tv) {
   // Whole seconds can just be copied.
-  ts->tv_sec = tv->tv_sec;
+  ts.tv_sec = tv.tv_sec;
 
   // But we might overflow when converting microseconds to nanoseconds.
-  if (tv->tv_usec >= 1000000 || tv->tv_usec < 0) {
+  if (tv.tv_usec >= 1000000 || tv.tv_usec < 0) {
     return false;
   }
-  ts->tv_nsec = tv->tv_usec * 1000;
+  ts.tv_nsec = tv.tv_usec * 1000;
   return true;
 }
 
-void timespec_from_ms(struct timespec* ts, const int ms) {
-  ts->tv_sec = ms / 1000;
-  ts->tv_nsec = (ms % 1000) * 1000000;
+void timespec_from_ms(timespec& ts, const int ms) {
+  ts.tv_sec = ms / 1000;
+  ts.tv_nsec = (ms % 1000) * 1000000;
 }
 
-void timeval_from_timespec(struct timeval* tv, const struct timespec* ts) {
-  tv->tv_sec = ts->tv_sec;
-  tv->tv_usec = ts->tv_nsec / 1000;
+void timeval_from_timespec(timeval& tv, const timespec& ts) {
+  tv.tv_sec = ts.tv_sec;
+  tv.tv_usec = ts.tv_nsec / 1000;
+}
+
+// Initializes 'ts' with the difference between 'abs_ts' and the current time
+// according to 'clock'. Returns false if abstime already expired, true otherwise.
+bool timespec_from_absolute_timespec(timespec& ts, const timespec& abs_ts, clockid_t clock) {
+  clock_gettime(clock, &ts);
+  ts.tv_sec = abs_ts.tv_sec - ts.tv_sec;
+  ts.tv_nsec = abs_ts.tv_nsec - ts.tv_nsec;
+  if (ts.tv_nsec < 0) {
+    ts.tv_sec--;
+    ts.tv_nsec += NS_PER_S;
+  }
+  if (ts.tv_nsec < 0 || ts.tv_sec < 0) {
+    return false;
+  }
+  return true;
 }

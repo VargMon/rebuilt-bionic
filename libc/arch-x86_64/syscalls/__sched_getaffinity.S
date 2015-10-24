@@ -9,9 +9,8 @@ ENTRY(__sched_getaffinity)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__sched_getaffinity)
-.hidden _C_LABEL(__sched_getaffinity)
+.hidden __sched_getaffinity

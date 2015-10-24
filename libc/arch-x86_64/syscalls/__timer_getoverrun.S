@@ -9,9 +9,8 @@ ENTRY(__timer_getoverrun)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__timer_getoverrun)
-.hidden _C_LABEL(__timer_getoverrun)
+.hidden __timer_getoverrun

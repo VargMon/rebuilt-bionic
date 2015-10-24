@@ -18,35 +18,33 @@
 #define SCOPED_READDIR_H
 
 #include <dirent.h>
-#include <stdbool.h>
 
-typedef struct dirent dirent;
-typedef struct ScopedReaddir ScopedReaddir;
-struct ScopedReaddir {
-  DIR* dir_;
-};
+#include "private/bionic_macros.h"
 
-static inline
-void ScopedReaddir_init(ScopedReaddir* sr, const char* path) {
-  sr->dir_ = opendir(path);
-}
-
-static inline
-void ScopedReaddir_fini(ScopedReaddir* sr) {
-  if (sr->dir_ != NULL) {
-    closedir(sr->dir_);
+class ScopedReaddir {
+ public:
+  ScopedReaddir(const char* path) {
+    dir_ = opendir(path);
   }
-}
 
-static inline
-bool ScopedReaddir_IsBad(ScopedReaddir* sr) {
-  return sr->dir_ == NULL;
-}
+  ~ScopedReaddir() {
+    if (dir_ != NULL) {
+      closedir(dir_);
+    }
+  }
 
-static inline
-dirent* ScopedReaddir_ReadEntry(ScopedReaddir* sr) {
-  return readdir(sr->dir_);
-}
+  bool IsBad() {
+    return dir_ == NULL;
+  }
 
+  dirent* ReadEntry() {
+    return readdir(dir_);
+  }
+
+ private:
+  DIR* dir_;
+
+  DISALLOW_COPY_AND_ASSIGN(ScopedReaddir);
+};
 
 #endif // SCOPED_READDIR_H

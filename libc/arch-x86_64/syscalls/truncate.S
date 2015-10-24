@@ -9,11 +9,9 @@ ENTRY(truncate)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(truncate)
 
-    .globl _C_LABEL(truncate64)
-    .equ _C_LABEL(truncate64), _C_LABEL(truncate)
+ALIAS_SYMBOL(truncate64, truncate)

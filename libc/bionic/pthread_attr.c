@@ -28,6 +28,14 @@
 
 #include <pthread.h>
 
+#include <inttypes.h>
+#include <stdio.h>
+#include <sys/resource.h>
+#include <unistd.h>
+
+#include "private/bionic_string_utils.h"
+#include "private/ErrnoRestorer.h"
+#include "private/libc_logging.h"
 #include "pthread_internal.h"
 
 int pthread_attr_init(pthread_attr_t* attr) {
@@ -71,12 +79,12 @@ int pthread_attr_getschedpolicy(const pthread_attr_t* attr, int* policy) {
   return 0;
 }
 
-int pthread_attr_setschedparam(pthread_attr_t* attr, const struct sched_param* param) {
+int pthread_attr_setschedparam(pthread_attr_t* attr, const sched_param* param) {
   attr->sched_priority = param->sched_priority;
   return 0;
 }
 
-int pthread_attr_getschedparam(const pthread_attr_t* attr, struct sched_param* param) {
+int pthread_attr_getschedparam(const pthread_attr_t* attr, sched_param* param) {
   param->sched_priority = attr->sched_priority;
   return 0;
 }
@@ -90,34 +98,57 @@ int pthread_attr_setstacksize(pthread_attr_t* attr, size_t stack_size) {
 }
 
 int pthread_attr_getstacksize(const pthread_attr_t* attr, size_t* stack_size) {
-  *stack_size = attr->stack_size;
-  return 0;
-}
-
-int pthread_attr_setstackaddr(pthread_attr_t *attr __unused,
-                              void *stackaddr __unused) {
-  // This was removed from POSIX.1-2008, and is not implemented on bionic.
-  // Needed for ABI compatibility with the NDK.
-  return ENOSYS;
-}
-
-int pthread_attr_getstackaddr(const pthread_attr_t* attr, void** stack_addr) {
-  // This was removed from POSIX.1-2008.
-  // Needed for ABI compatibility with the NDK.
-  *stack_addr = (char*)attr->stack_base + attr->stack_size;
-  return 0;
+  void* unused;
+  return pthread_attr_getstack(attr, &unused, stack_size);
 }
 
 int pthread_attr_setstack(pthread_attr_t* attr, void* stack_base, size_t stack_size) {
   if ((stack_size & (PAGE_SIZE - 1) || stack_size < PTHREAD_STACK_MIN)) {
     return EINVAL;
   }
-  if ((uintptr_t)(stack_base) & (PAGE_SIZE - 1)) {
+  if (reinterpret_cast<uintptr_t>(stack_base) & (PAGE_SIZE - 1)) {
     return EINVAL;
   }
   attr->stack_base = stack_base;
   attr->stack_size = stack_size;
   return 0;
+}
+
+static int __pthread_attr_getstack_main_thread(void** stack_base, size_t* stack_size) {
+  ErrnoRestorer errno_restorer;
+
+  rlimit stack_limit;
+  if (getrlimit(RLIMIT_STACK, &stack_limit) == -1) {
+    return errno;
+  }
+
+  // If the current RLIMIT_STACK is RLIM_INFINITY, only admit to an 8MiB stack for sanity's sake.
+  if (stack_limit.rlim_cur == RLIM_INFINITY) {
+    stack_limit.rlim_cur = 8 * 1024 * 1024;
+  }
+
+  // It shouldn't matter which thread we are because we're just looking for "[stack]", but
+  // valgrind seems to mess with the stack enough that the kernel will report "[stack:pid]"
+  // instead if you look in /proc/self/maps, so we need to look in /proc/pid/task/pid/maps.
+  char path[64];
+  snprintf(path, sizeof(path), "/proc/self/task/%d/maps", getpid());
+  FILE* fp = fopen(path, "re");
+  if (fp == NULL) {
+    return errno;
+  }
+  char line[BUFSIZ];
+  while (fgets(line, sizeof(line), fp) != NULL) {
+    if (ends_with(line, " [stack]\n")) {
+      uintptr_t lo, hi;
+      if (sscanf(line, "%" SCNxPTR "-%" SCNxPTR, &lo, &hi) == 2) {
+        *stack_size = stack_limit.rlim_cur;
+        *stack_base = reinterpret_cast<void*>(hi - *stack_size);
+        fclose(fp);
+        return 0;
+      }
+    }
+  }
+  __libc_fatal("No [stack] line found in \"%s\"!", path);
 }
 
 int pthread_attr_getstack(const pthread_attr_t* attr, void** stack_base, size_t* stack_size) {
@@ -136,13 +167,23 @@ int pthread_attr_getguardsize(const pthread_attr_t* attr, size_t* guard_size) {
   return 0;
 }
 
-int pthread_getattr_np(pthread_t thid, pthread_attr_t* attr) {
-  pthread_internal_t* thread = (pthread_internal_t*) thid;
+int pthread_getattr_np(pthread_t t, pthread_attr_t* attr) {
+  pthread_internal_t* thread = reinterpret_cast<pthread_internal_t*>(t);
   *attr = thread->attr;
+  // We prefer reading join_state here to setting thread->attr.flags in pthread_detach.
+  // Because data race exists in the latter case.
+  if (atomic_load(&thread->join_state) == THREAD_DETACHED) {
+    attr->flags |= PTHREAD_ATTR_FLAG_DETACHED;
+  }
+  // The main thread's stack information is not stored in thread->attr, and we need to
+  // collect that at runtime.
+  if (thread->tid == getpid()) {
+    return __pthread_attr_getstack_main_thread(&attr->stack_base, &attr->stack_size);
+  }
   return 0;
 }
 
-int pthread_attr_setscope(pthread_attr_t* attr __unused, int scope) {
+int pthread_attr_setscope(pthread_attr_t*, int scope) {
   if (scope == PTHREAD_SCOPE_SYSTEM) {
     return 0;
   }
@@ -152,7 +193,7 @@ int pthread_attr_setscope(pthread_attr_t* attr __unused, int scope) {
   return EINVAL;
 }
 
-int pthread_attr_getscope(const pthread_attr_t* attr __unused, int* scope) {
+int pthread_attr_getscope(const pthread_attr_t*, int* scope) {
   *scope = PTHREAD_SCOPE_SYSTEM;
   return 0;
 }

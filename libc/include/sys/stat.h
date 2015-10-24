@@ -25,114 +25,108 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
 #ifndef _SYS_STAT_H_
 #define _SYS_STAT_H_
 
+#include <linux/stat.h>
+#include <machine/timespec.h>
 #include <sys/cdefs.h>
 #include <sys/types.h>
-#include <sys/time.h>
-#include <linux/stat.h>
-
-#include <endian.h>
 
 __BEGIN_DECLS
 
-#if defined(__aarch64__)
-struct stat {
-  unsigned long st_dev;
-  unsigned long st_ino;
-  unsigned int st_mode;
-  unsigned int st_nlink;
-  unsigned int st_uid;
-  unsigned int st_gid;
-  unsigned long st_rdev;
-  unsigned long __pad1;
-  long st_size;
-  int st_blksize;
-  int __pad2;
-  long st_blocks;
-  long st_atime;
-  unsigned long st_atime_nsec;
-  long st_mtime;
-  unsigned long st_mtime_nsec;
-  long st_ctime;
-  unsigned long st_ctime_nsec;
-  unsigned int __unused4;
-  unsigned int __unused5;
-};
-#elif defined(__mips__)
-struct stat {
-  unsigned long st_dev;
-  unsigned long __pad0[3];
-  unsigned long long st_ino;
-  unsigned int st_mode;
-  unsigned int st_nlink;
-  unsigned long st_uid;
-  unsigned long st_gid;
-  unsigned long st_rdev;
-  unsigned long __pad1[3];
-  long long st_size;
-  unsigned long st_atime;
-  unsigned long st_atime_nsec;
-  unsigned long st_mtime;
-  unsigned long st_mtime_nsec;
-  unsigned long st_ctime;
-  unsigned long st_ctime_nsec;
-  unsigned long st_blksize;
-  unsigned long __pad2;
-  unsigned long long st_blocks;
-};
+#if defined(__aarch64__) || (defined(__mips__) && defined(__LP64__))
+#define __STAT64_BODY \
+  dev_t st_dev; \
+  ino_t st_ino; \
+  mode_t st_mode; \
+  nlink_t st_nlink; \
+  uid_t st_uid; \
+  gid_t st_gid; \
+  dev_t st_rdev; \
+  unsigned long __pad1; \
+  off_t st_size; \
+  int st_blksize; \
+  int __pad2; \
+  long st_blocks; \
+  struct timespec st_atim; \
+  struct timespec st_mtim; \
+  struct timespec st_ctim; \
+  unsigned int __unused4; \
+  unsigned int __unused5; \
+
+#elif defined(__mips__) && !defined(__LP64__)
+#define __STAT64_BODY \
+  unsigned int st_dev; \
+  unsigned int __pad0[3]; \
+  unsigned long long st_ino; \
+  mode_t st_mode; \
+  nlink_t st_nlink; \
+  uid_t st_uid; \
+  gid_t st_gid; \
+  unsigned int st_rdev; \
+  unsigned int __pad1[3]; \
+  long long st_size; \
+  struct timespec st_atim; \
+  struct timespec st_mtim; \
+  struct timespec st_ctim; \
+  unsigned int st_blksize; \
+  unsigned int __pad2; \
+  unsigned long long st_blocks; \
+
 #elif defined(__x86_64__)
-struct stat {
-  unsigned long st_dev;
-  unsigned long st_ino;
-  unsigned long st_nlink;
-  unsigned int st_mode;
-  unsigned int st_uid;
-  unsigned int st_gid;
-  unsigned int __pad0;
-  unsigned long st_rdev;
-  long st_size;
-  long st_blksize;
-  long st_blocks;
-  unsigned long st_atime;
-  unsigned long st_atime_nsec;
-  unsigned long st_mtime;
-  unsigned long st_mtime_nsec;
-  unsigned long st_ctime;
-  unsigned long st_ctime_nsec;
-  long __pad3[3];
-};
-#else
-struct stat {
-  unsigned long long st_dev;
-  unsigned char __pad0[4];
-  unsigned long __st_ino;
-  unsigned int st_mode;
-  unsigned int st_nlink;
-  unsigned long st_uid;
-  unsigned long st_gid;
-  unsigned long long st_rdev;
-  unsigned char __pad3[4];
-  long long st_size;
-  unsigned long st_blksize;
-  unsigned long long st_blocks;
-  unsigned long st_atime;
-  unsigned long st_atime_nsec;
-  unsigned long st_mtime;
-  unsigned long st_mtime_nsec;
-  unsigned long st_ctime;
-  unsigned long st_ctime_nsec;
-  unsigned long long st_ino;
-};
+#define __STAT64_BODY \
+  dev_t st_dev; \
+  ino_t st_ino; \
+  unsigned long st_nlink; \
+  mode_t st_mode; \
+  uid_t st_uid; \
+  gid_t st_gid; \
+  unsigned int __pad0; \
+  dev_t st_rdev; \
+  off_t st_size; \
+  long st_blksize; \
+  long st_blocks; \
+  struct timespec st_atim; \
+  struct timespec st_mtim; \
+  struct timespec st_ctim; \
+  long __pad3[3]; \
+
+#else /* __arm__ || __i386__ */
+#define __STAT64_BODY \
+  unsigned long long st_dev; \
+  unsigned char __pad0[4]; \
+  unsigned long __st_ino; \
+  unsigned int st_mode; \
+  nlink_t st_nlink; \
+  uid_t st_uid; \
+  gid_t st_gid; \
+  unsigned long long st_rdev; \
+  unsigned char __pad3[4]; \
+  long long st_size; \
+  unsigned long st_blksize; \
+  unsigned long long st_blocks; \
+  struct timespec st_atim; \
+  struct timespec st_mtim; \
+  struct timespec st_ctim; \
+  unsigned long long st_ino; \
+
 #endif
 
-/* For compatibility with GLibc, we provide macro aliases
- * for the non-Posix nano-seconds accessors.
- */
-#define  st_atimensec  st_atime_nsec
-#define  st_mtimensec  st_mtime_nsec
-#define  st_ctimensec  st_ctime_nsec
+struct stat { __STAT64_BODY };
+struct stat64 { __STAT64_BODY };
+
+#undef __STAT64_BODY
+
+/* Compatibility with older versions of POSIX. */
+#define st_atime st_atim.tv_sec
+#define st_mtime st_mtim.tv_sec
+#define st_ctime st_ctim.tv_sec
+/* Compatibility with glibc. */
+#define st_atimensec st_atim.tv_nsec
+#define st_mtimensec st_mtim.tv_nsec
+#define st_ctimensec st_ctim.tv_nsec
 
 #ifdef __USE_BSD
 /* Permission macros provided by glibc for compatibility with BSDs. */
@@ -141,22 +135,27 @@ struct stat {
 #define DEFFILEMODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH) /* 0666 */
 #endif
 
-extern int    chmod(const char *, mode_t);
-extern int    fchmod(int, mode_t);
-extern int    mkdir(const char *, mode_t);
+extern int chmod(const char*, mode_t);
+extern int fchmod(int, mode_t);
+extern int mkdir(const char*, mode_t);
 
-extern int    stat(const char *, struct stat *);
-extern int    fstat(int, struct stat *);
-extern int    lstat(const char *, struct stat *);
-extern int    mknod(const char *, mode_t, dev_t);
+extern int fstat(int, struct stat*);
+extern int fstat64(int, struct stat64*);
+extern int fstatat(int, const char*, struct stat*, int);
+extern int fstatat64(int, const char*, struct stat64*, int);
+extern int lstat(const char*, struct stat*);
+extern int lstat64(const char*, struct stat64*);
+extern int stat(const char*, struct stat*);
+extern int stat64(const char*, struct stat64*);
+
+extern int mknod(const char*, mode_t, dev_t);
 extern mode_t umask(mode_t);
 
-#if defined(__BIONIC_FORTIFY)
-
 extern mode_t __umask_chk(mode_t);
-extern mode_t __umask_real(mode_t)
-    __asm__(__USER_LABEL_PREFIX__ "umask");
+extern mode_t __umask_real(mode_t) __RENAME(umask);
 __errordecl(__umask_invalid_mode, "umask called with invalid mode");
+
+#if defined(__BIONIC_FORTIFY)
 
 __BIONIC_FORTIFY_INLINE
 mode_t umask(mode_t mode) {
@@ -172,22 +171,21 @@ mode_t umask(mode_t mode) {
 }
 #endif /* defined(__BIONIC_FORTIFY) */
 
-
-#define  stat64    stat
-#define  fstat64   fstat
-#define  lstat64   lstat
-
-extern int mkfifo(const char*, mode_t);
+_BIONIC_NOT_BEFORE_21(extern int mkfifo(const char*, mode_t);)
+extern int mkfifoat(int, const char*, mode_t);
 
 extern int fchmodat(int, const char*, mode_t, int);
-extern int fstatat(int, const char*, struct stat*, int);
 extern int mkdirat(int, const char*, mode_t);
 extern int mknodat(int, const char*, mode_t, dev_t);
 
-# define UTIME_NOW      ((1l << 30) - 1l)
-# define UTIME_OMIT     ((1l << 30) - 2l)
+#define UTIME_NOW  ((1L << 30) - 1L)
+#define UTIME_OMIT ((1L << 30) - 2L)
 extern int utimensat(int fd, const char *path, const struct timespec times[2], int flags);
 extern int futimens(int fd, const struct timespec times[2]);
+
+#if __ANDROID_API__ < 21
+#include <android/legacy_sys_stat_inlines.h>
+#endif
 
 __END_DECLS
 

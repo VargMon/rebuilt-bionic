@@ -30,7 +30,29 @@
 #define _STDINT_H
 
 #include <stddef.h>
-#include <sys/_types.h>
+#include <machine/wchar_limits.h>
+
+typedef __signed char __int8_t;
+typedef unsigned char __uint8_t;
+typedef short __int16_t;
+typedef unsigned short __uint16_t;
+typedef int __int32_t;
+typedef unsigned int __uint32_t;
+#if __LP64__
+typedef long __int64_t;
+typedef unsigned long __uint64_t;
+#else
+typedef long long __int64_t;
+typedef unsigned long long __uint64_t;
+#endif
+
+#if __LP64__
+typedef long __intptr_t;
+typedef unsigned long __uintptr_t;
+#else
+typedef int __intptr_t;
+typedef unsigned int __uintptr_t;
+#endif
 
 typedef __int8_t      int8_t;
 typedef __uint8_t     uint8_t;
@@ -44,40 +66,41 @@ typedef __uint32_t    uint32_t;
 typedef __int64_t     int64_t;
 typedef __uint64_t    uint64_t;
 
-typedef int8_t        int_least8_t;
-typedef int8_t        int_fast8_t;
+typedef __intptr_t    intptr_t;
+typedef __uintptr_t   uintptr_t;
 
+typedef int8_t        int_least8_t;
 typedef uint8_t       uint_least8_t;
-typedef uint8_t       uint_fast8_t;
 
 typedef int16_t       int_least16_t;
-typedef int32_t       int_fast16_t;
-
 typedef uint16_t      uint_least16_t;
-typedef uint32_t      uint_fast16_t;
 
 typedef int32_t       int_least32_t;
-typedef int32_t       int_fast32_t;
-
 typedef uint32_t      uint_least32_t;
-typedef uint32_t      uint_fast32_t;
 
 typedef int64_t       int_least64_t;
-typedef int64_t       int_fast64_t;
-
 typedef uint64_t      uint_least64_t;
+
+typedef int8_t        int_fast8_t;
+typedef uint8_t       uint_fast8_t;
+
+typedef int64_t       int_fast64_t;
 typedef uint64_t      uint_fast64_t;
 
-#ifdef __LP64__
-typedef long          intptr_t;
-typedef unsigned long uintptr_t;
+#if defined(__LP64__)
+typedef int64_t       int_fast16_t;
+typedef uint64_t      uint_fast16_t;
+typedef int64_t       int_fast32_t;
+typedef uint64_t      uint_fast32_t;
 #else
-typedef int           intptr_t;
-typedef unsigned int  uintptr_t;
+typedef int32_t       int_fast16_t;
+typedef uint32_t      uint_fast16_t;
+typedef int32_t       int_fast32_t;
+typedef uint32_t      uint_fast32_t;
 #endif
 
-typedef uint64_t uintmax_t;
-typedef int64_t  intmax_t;
+typedef uint64_t      uintmax_t;
+typedef int64_t       intmax_t;
 
 /* Keep the kernel from trying to define these types... */
 #define __BIT_TYPES_DEFINED__
@@ -113,7 +136,7 @@ typedef int64_t  intmax_t;
 #define INTMAX_C(c)       INT64_C(c)
 #define UINTMAX_C(c)      UINT64_C(c)
 
-#ifdef __LP64__
+#if defined(__LP64__)
 #  define INT64_C(c)      c ## L
 #  define UINT64_C(c)     c ## UL
 #  define INTPTR_C(c)     INT64_C(c)
@@ -178,15 +201,15 @@ typedef int64_t  intmax_t;
 #define SIG_ATOMIC_MAX   INT32_MAX
 #define SIG_ATOMIC_MIN   INT32_MIN
 
-#ifndef WCHAR_MAX /* These might also have been defined by <wchar.h>. */
-#  define WCHAR_MAX      INT32_MAX
-#  define WCHAR_MIN      INT32_MIN
+#if defined(__WINT_UNSIGNED__)
+#  define WINT_MAX       UINT32_MAX
+#  define WINT_MIN       0
+#else
+#  define WINT_MAX       INT32_MAX
+#  define WINT_MIN       INT32_MIN
 #endif
 
-#define WINT_MAX         INT32_MAX
-#define WINT_MIN         INT32_MIN
-
-#ifdef __LP64__
+#if defined(__LP64__)
 #  define INTPTR_MIN     INT64_MIN
 #  define INTPTR_MAX     INT64_MAX
 #  define UINTPTR_MAX    UINT64_MAX

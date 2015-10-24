@@ -43,18 +43,24 @@ static inline int force_O_LARGEFILE(int flags) {
 #endif
 }
 
+int creat(const char* pathname, mode_t mode) {
+  return open(pathname, O_CREAT | O_TRUNC | O_WRONLY, mode);
+}
+__strong_alias(creat64, creat);
+
 int open(const char* pathname, int flags, ...) {
   mode_t mode = 0;
 
   if ((flags & O_CREAT) != 0) {
     va_list args;
     va_start(args, flags);
-    mode = (mode_t) va_arg(args, int);
+    mode = static_cast<mode_t>(va_arg(args, int));
     va_end(args);
   }
 
   return __openat(AT_FDCWD, pathname, force_O_LARGEFILE(flags), mode);
 }
+__strong_alias(open64, open);
 
 int __open_2(const char* pathname, int flags) {
   if (__predict_false((flags & O_CREAT) != 0)) {
@@ -70,12 +76,13 @@ int openat(int fd, const char *pathname, int flags, ...) {
   if ((flags & O_CREAT) != 0) {
     va_list args;
     va_start(args, flags);
-    mode = (mode_t) va_arg(args, int);
+    mode = static_cast<mode_t>(va_arg(args, int));
     va_end(args);
   }
 
   return __openat(fd, pathname, force_O_LARGEFILE(flags), mode);
 }
+__strong_alias(openat64, openat);
 
 int __openat_2(int fd, const char* pathname, int flags) {
   if ((flags & O_CREAT) != 0) {

@@ -29,7 +29,27 @@
 #define _PTHREAD_INTERNAL_H_
 
 #include <pthread.h>
-#include <stdbool.h>
+#include <stdatomic.h>
+
+#include "private/bionic_tls.h"
+
+/* Has the thread been detached by a pthread_join or pthread_detach call? */
+#define PTHREAD_ATTR_FLAG_DETACHED 0x00000001
+
+/* Has the thread been joined by another thread? */
+#define PTHREAD_ATTR_FLAG_JOINED 0x00000002
+
+struct pthread_key_data_t {
+  uintptr_t seq; // Use uintptr_t just for alignment, as we use pointer below.
+  void* data;
+};
+
+enum ThreadJoinState {
+  THREAD_NOT_JOINED,
+  THREAD_EXITED_NOT_JOINED,
+  THREAD_JOINED,
+  THREAD_DETACHED
+};
 
 struct pthread_internal_t {
   struct pthread_internal_t* next;
@@ -37,9 +57,29 @@ struct pthread_internal_t {
 
   pid_t tid;
 
-  void** tls;
+ private:
+  pid_t cached_pid_;
+
+ public:
+  pid_t invalidate_cached_pid() {
+    pid_t old_value;
+    get_cached_pid(&old_value);
+    set_cached_pid(0);
+    return old_value;
+  }
+
+  void set_cached_pid(pid_t value) {
+    cached_pid_ = value;
+  }
+
+  bool get_cached_pid(pid_t* cached_pid) {
+    *cached_pid = cached_pid_;
+    return (*cached_pid != 0);
+  }
 
   pthread_attr_t attr;
+
+  _Atomic(ThreadJoinState) join_state;
 
   __pthread_cleanup_t* cleanup_stack;
 
@@ -49,6 +89,14 @@ struct pthread_internal_t {
 
   void* alternate_signal_stack;
 
+  pthread_mutex_t startup_handshake_mutex;
+
+  size_t mmap_size;
+
+  void* tls[BIONIC_TLS_SLOTS];
+
+  pthread_key_data_t key_data[BIONIC_PTHREAD_KEY_COUNT];
+
   /*
    * The dynamic linker implements dlerror(3), which makes it hard for us to implement this
    * per-thread buffer by simply using malloc(3) and free(3).
@@ -56,31 +104,25 @@ struct pthread_internal_t {
 #define __BIONIC_DLERROR_BUFFER_SIZE 512
   char dlerror_buffer[__BIONIC_DLERROR_BUFFER_SIZE];
 };
-typedef struct pthread_internal_t pthread_internal_t;
 
-__LIBC_HIDDEN__ int __init_thread(pthread_internal_t* thread, bool add_to_thread_list);
+__LIBC_HIDDEN__ int __init_thread(pthread_internal_t* thread);
 __LIBC_HIDDEN__ void __init_tls(pthread_internal_t* thread);
 __LIBC_HIDDEN__ void __init_alternate_signal_stack(pthread_internal_t*);
-__LIBC_HIDDEN__ void _pthread_internal_add(pthread_internal_t* thread);
-__LIBC_HIDDEN__ struct pthread_internal_t* __get_thread(void);
+
+__LIBC_HIDDEN__ pthread_t           __pthread_internal_add(pthread_internal_t* thread);
+__LIBC_HIDDEN__ pthread_internal_t* __pthread_internal_find(pthread_t pthread_id);
+__LIBC_HIDDEN__ void                __pthread_internal_remove(pthread_internal_t* thread);
+__LIBC_HIDDEN__ void                __pthread_internal_remove_and_free(pthread_internal_t* thread);
+
+// Make __get_thread() inlined for performance reason. See http://b/19825434.
+static inline __always_inline pthread_internal_t* __get_thread() {
+  return reinterpret_cast<pthread_internal_t*>(__get_tls()[TLS_SLOT_THREAD_ID]);
+}
 
 __LIBC_HIDDEN__ void pthread_key_clean_all(void);
-__LIBC_HIDDEN__ void _pthread_internal_remove_locked(pthread_internal_t* thread);
-
-/* Has the thread been detached by a pthread_join or pthread_detach call? */
-#define PTHREAD_ATTR_FLAG_DETACHED 0x00000001
-
-/* Was the thread's stack allocated by the user rather than by us? */
-#define PTHREAD_ATTR_FLAG_USER_ALLOCATED_STACK 0x00000002
-
-/* Has the thread been joined by another thread? */
-#define PTHREAD_ATTR_FLAG_JOINED 0x00000004
-
-/* Is this the main thread? */
-#define PTHREAD_ATTR_FLAG_MAIN_THREAD 0x80000000
 
 /*
- * Traditionally we give threads a 1MiB stack. When we started
+ * Traditionally we gave threads a 1MiB stack. When we started
  * allocating per-thread alternate signal stacks to ease debugging of
  * stack overflows, we subtracted the same amount we were using there
  * from the default thread stack size. This should keep memory usage
@@ -88,17 +130,12 @@ __LIBC_HIDDEN__ void _pthread_internal_remove_locked(pthread_internal_t* thread)
  */
 #define PTHREAD_STACK_SIZE_DEFAULT ((1 * 1024 * 1024) - SIGSTKSZ)
 
-__LIBC_HIDDEN__ extern pthread_internal_t* gThreadList;
-__LIBC_HIDDEN__ extern pthread_mutex_t gThreadListLock;
+/* Leave room for a guard page in the internally created signal stacks. */
+#define SIGNAL_STACK_SIZE (SIGSTKSZ + PAGE_SIZE)
 
-__LIBC_HIDDEN__ int __timespec_to_absolute(struct timespec*, const struct timespec*, clockid_t);
-
-/* needed by fork.c */
-__LIBC_HIDDEN__ extern void __timer_table_start_stop(int);
+/* Needed by fork. */
 __LIBC_HIDDEN__ extern void __bionic_atfork_run_prepare();
 __LIBC_HIDDEN__ extern void __bionic_atfork_run_child();
 __LIBC_HIDDEN__ extern void __bionic_atfork_run_parent();
-
-__END_DECLS
 
 #endif /* _PTHREAD_INTERNAL_H_ */

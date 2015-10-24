@@ -10,9 +10,8 @@ ENTRY(__ppoll)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__ppoll)
-.hidden _C_LABEL(__ppoll)
+.hidden __ppoll

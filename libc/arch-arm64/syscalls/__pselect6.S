@@ -3,20 +3,13 @@
 #include <private/bionic_asm.h>
 
 ENTRY(__pselect6)
-    stp     x29, x30, [sp, #-16]!
-    mov     x29,  sp
-    str     x8,       [sp, #-16]!
-
     mov     x8, __NR_pselect6
     svc     #0
 
-    ldr     x8,       [sp], #16
-    ldp     x29, x30, [sp], #16
-
     cmn     x0, #(MAX_ERRNO + 1)
     cneg    x0, x0, hi
-    b.hi    __set_errno
+    b.hi    __set_errno_internal
 
     ret
 END(__pselect6)
-.hidden _C_LABEL(__pselect6)
+.hidden __pselect6

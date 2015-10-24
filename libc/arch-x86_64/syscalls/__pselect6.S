@@ -10,9 +10,8 @@ ENTRY(__pselect6)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__pselect6)
-.hidden _C_LABEL(__pselect6)
+.hidden __pselect6

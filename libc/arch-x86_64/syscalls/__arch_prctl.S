@@ -9,9 +9,8 @@ ENTRY(__arch_prctl)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__arch_prctl)
-.hidden _C_LABEL(__arch_prctl)
+.hidden __arch_prctl

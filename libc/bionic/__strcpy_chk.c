@@ -26,6 +26,8 @@
  * SUCH DAMAGE.
  */
 
+#undef _FORTIFY_SOURCE
+
 #include <string.h>
 #include <stdlib.h>
 #include "private/libc_logging.h"
@@ -41,7 +43,7 @@
  * This strcpy check is called if _FORTIFY_SOURCE is defined and
  * greater than 0.
  */
-char* __strcpy_chk (char* dest, const char* src, size_t dest_len) {
+extern "C" char* __strcpy_chk(char* dest, const char* src, size_t dest_len) {
   // TODO: optimize so we don't scan src twice.
   size_t src_len = strlen(src) + 1;
   if (__predict_false(src_len > dest_len)) {

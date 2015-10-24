@@ -9,9 +9,8 @@ ENTRY(__ioctl)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__ioctl)
-.hidden _C_LABEL(__ioctl)
+.hidden __ioctl

@@ -37,14 +37,12 @@ ENTRY(vfork)
     mov     x3, xzr
     mov     x4, xzr
 
-    str     x8, [sp, #-16]!
     mov     x8, __NR_clone
     svc     #0
-    ldr     x8, [sp], #16
 
     cmn     x0, #(MAX_ERRNO + 1)
     cneg    x0, x0, hi
-    b.hi    __set_errno
+    b.hi    __set_errno_internal
 
     ret
 END(vfork)

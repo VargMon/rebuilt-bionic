@@ -9,9 +9,8 @@ ENTRY(__getcpu)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__getcpu)
-.hidden _C_LABEL(__getcpu)
+.hidden __getcpu

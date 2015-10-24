@@ -48,15 +48,17 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <elf.h>
-#include "atexit.h"
 #include "libc_init_common.h"
 
 #include "private/bionic_tls.h"
 #include "private/KernelArgumentBlock.h"
 
-extern void pthread_debug_init(void);
-extern void malloc_debug_init(void);
-extern void malloc_debug_fini(void);
+extern "C" {
+  extern void malloc_debug_init(void);
+  extern void malloc_debug_fini(void);
+  extern void netdClientInit(void);
+  extern int __cxa_atexit(void (*)(void *), void *, void *);
+};
 
 // We flag the __libc_preinit function as a constructor to ensure
 // that its address is listed in libc.so's .init_array section.
@@ -65,18 +67,18 @@ extern void malloc_debug_fini(void);
 __attribute__((constructor)) static void __libc_preinit() {
   // Read the kernel argument block pointer from TLS.
   void** tls = __get_tls();
-  KernelArgumentBlock** args_slot = &(((KernelArgumentBlock**)(tls))[TLS_SLOT_BIONIC_PREINIT]);
+  KernelArgumentBlock** args_slot = &reinterpret_cast<KernelArgumentBlock**>(tls)[TLS_SLOT_BIONIC_PREINIT];
   KernelArgumentBlock* args = *args_slot;
 
   // Clear the slot so no other initializer sees its value.
   // __libc_init_common() will change the TLS area so the old one won't be accessible anyway.
   *args_slot = NULL;
 
-  __libc_init_common(args);
+  __libc_init_common(*args);
 
-  // Hooks for the debug malloc and pthread libraries to let them know that we're starting up.
-  pthread_debug_init();
+  // Hooks for various libraries to let them know that we're starting up.
   malloc_debug_init();
+  netdClientInit();
 }
 
 __LIBC_HIDDEN__ void __libc_postfini() {
@@ -92,12 +94,11 @@ __LIBC_HIDDEN__ void __libc_postfini() {
 // Note that the dynamic linker has also run all constructors in the
 // executable at this point.
 __noreturn void __libc_init(void* raw_args,
-                            void (*onexit)(void)  __unused,
+                            void (*onexit)(void) __unused,
                             int (*slingshot)(int, char**, char**),
                             structors_array_t const * const structors) {
 
-  KernelArgumentBlock args;
-  KernelArgumentBlock_init(&args, raw_args);
+  KernelArgumentBlock args(raw_args);
 
   // Several Linux ABIs don't pass the onexit pointer, and the ones that
   // do never use it.  Therefore, we ignore it.

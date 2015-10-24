@@ -26,14 +26,10 @@
  * SUCH DAMAGE.
  */
 
-#include <asm/unistd.h>
-#include <machine/asm.h>
+#include <private/bionic_asm.h>
 
 // pid_t __bionic_clone(int flags, void* child_stack, pid_t* parent_tid, void* tls, pid_t* child_tid, int (*fn)(void*), void* arg);
 ENTRY(__bionic_clone)
-        # Enforce 16-byte alignment for child stack.
-        andq    $~15, %rsi
-
         # Copy 'fn' and 'arg' onto the child stack.
         movq    %r9, -16(%rsi)  # fn
         movq    8(%rsp), %rax   # Read 'arg'.
@@ -49,25 +45,33 @@ ENTRY(__bionic_clone)
         # Make the system call.
         movl    $__NR_clone, %eax
         syscall
-        testl   %eax, %eax
-        jns     1f
+
+        # Check result.
+        testq   %rax, %rax
+        jz      .L_bc_child
+        jg      .L_bc_parent
 
         # An error occurred, set errno and return -1.
         negl    %eax
         movl    %eax, %edi
-        call    __set_errno
-        orl     $-1, %eax
-        jmp     2f
-1:
-        jnz     2f
+        call    __set_errno_internal
+        ret
 
-        # We're in the child now, so call __bionic_clone_entry
+.L_bc_child:
+        # We don't want anyone to unwind past this point.
+        .cfi_undefined %rip
+        .cfi_undefined %rbp
+
+        # We're in the child now, so call __start_thread
         # with the arguments from the child stack moved into
         # the appropriate registers.
         popq    %rdi  # fn
         popq    %rsi  # arg
-        call    __bionic_clone_entry
+        call    __start_thread
         hlt
-2:
+
+.L_bc_parent:
+        # We're the parent; nothing to do.
         ret
 END(__bionic_clone)
+.hidden __bionic_clone

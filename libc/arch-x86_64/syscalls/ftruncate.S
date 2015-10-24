@@ -9,11 +9,9 @@ ENTRY(ftruncate)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(ftruncate)
 
-    .globl _C_LABEL(ftruncate64)
-    .equ _C_LABEL(ftruncate64), _C_LABEL(ftruncate)
+ALIAS_SYMBOL(ftruncate64, ftruncate)

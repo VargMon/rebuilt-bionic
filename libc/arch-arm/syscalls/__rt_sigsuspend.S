@@ -3,6 +3,12 @@
 #include <private/bionic_asm.h>
 
 ENTRY(__rt_sigsuspend)
-    ldr     ip, =__NR_rt_sigsuspend
-    b       __bionic_syscall_eabi
+    mov     ip, r7
+    ldr     r7, =__NR_rt_sigsuspend
+    swi     #0
+    mov     r7, ip
+    cmn     r0, #(MAX_ERRNO + 1)
+    bxls    lr
+    neg     r0, r0
+    b       __set_errno_internal
 END(__rt_sigsuspend)

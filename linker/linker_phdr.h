@@ -37,84 +37,76 @@
 
 #include "linker.h"
 
-typedef struct ElfReader ElfReader;
-struct ElfReader {
+class ElfReader {
+ public:
+  ElfReader(const char* name, int fd, off64_t file_offset, off64_t file_size);
+  ~ElfReader();
+
+  bool Load(const android_dlextinfo* extinfo);
+
+  size_t phdr_count() { return phdr_num_; }
+  ElfW(Addr) load_start() { return reinterpret_cast<ElfW(Addr)>(load_start_); }
+  size_t load_size() { return load_size_; }
+  ElfW(Addr) load_bias() { return load_bias_; }
+  const ElfW(Phdr)* loaded_phdr() { return loaded_phdr_; }
+
+ private:
+  bool ReadElfHeader();
+  bool VerifyElfHeader();
+  bool ReadProgramHeader();
+  bool ReserveAddressSpace(const android_dlextinfo* extinfo);
+  bool LoadSegments();
+  bool FindPhdr();
+  bool CheckPhdr(ElfW(Addr));
+
   const char* name_;
   int fd_;
+  off64_t file_offset_;
+  off64_t file_size_;
 
-  Elf_Ehdr header_;
+  ElfW(Ehdr) header_;
   size_t phdr_num_;
 
   void* phdr_mmap_;
-  Elf_Phdr* phdr_table_;
-  Elf_Addr phdr_size_;
+  ElfW(Phdr)* phdr_table_;
+  ElfW(Addr) phdr_size_;
 
   // First page of reserved address space.
   void* load_start_;
   // Size in bytes of reserved address space.
   size_t load_size_;
   // Load bias.
-  Elf_Addr load_bias_;
+  ElfW(Addr) load_bias_;
 
   // Loaded phdr.
-  const Elf_Phdr* loaded_phdr_;
+  const ElfW(Phdr)* loaded_phdr_;
 };
 
-void ElfReader_init(ElfReader* er, const char* name, int fd);
-void ElfReader_fini(ElfReader* er);
+size_t phdr_table_get_load_size(const ElfW(Phdr)* phdr_table, size_t phdr_count,
+                                ElfW(Addr)* min_vaddr = nullptr, ElfW(Addr)* max_vaddr = nullptr);
 
-bool ElfReader_Load(ElfReader* er);
+int phdr_table_protect_segments(const ElfW(Phdr)* phdr_table,
+                                size_t phdr_count, ElfW(Addr) load_bias);
 
-static inline
-size_t ElfReader_phdr_count(ElfReader* er) {
-  return er->phdr_num_;
-}
+int phdr_table_unprotect_segments(const ElfW(Phdr)* phdr_table, size_t phdr_count,
+                                  ElfW(Addr) load_bias);
 
-static inline
-Elf_Addr ElfReader_load_start(ElfReader* er) {
-  return (Elf_Addr)(er->load_start_);
-}
+int phdr_table_protect_gnu_relro(const ElfW(Phdr)* phdr_table, size_t phdr_count,
+                                 ElfW(Addr) load_bias);
 
-static inline
-size_t ElfReader_load_size(ElfReader* er) {
-  return er->load_size_;
-}
+int phdr_table_serialize_gnu_relro(const ElfW(Phdr)* phdr_table, size_t phdr_count,
+                                   ElfW(Addr) load_bias, int fd);
 
-static inline
-Elf_Addr ElfReader_load_bias(ElfReader* er) {
-  return er->load_bias_;
-}
-
-static inline
-const Elf_Phdr* ElfReader_loaded_phdr(ElfReader* er) {
-  return er->loaded_phdr_;
-}
-
-bool ElfReader_ReadElfHeader(ElfReader* er);
-bool ElfReader_VerifyElfHeader(ElfReader* er);
-bool ElfReader_ReadProgramHeader(ElfReader* er);
-bool ElfReader_ReserveAddressSpace(ElfReader* er);
-bool ElfReader_LoadSegments(ElfReader* er);
-bool ElfReader_FindPhdr(ElfReader* er);
-bool ElfReader_CheckPhdr(ElfReader* er, Elf_Addr);
-
-size_t phdr_table_get_load_size(const Elf_Phdr* phdr_table, size_t phdr_count,
-                                Elf_Addr* min_vaddr, Elf_Addr* max_vaddr);
-
-int phdr_table_protect_segments(const Elf_Phdr* phdr_table, size_t phdr_count, Elf_Addr load_bias);
-
-int phdr_table_unprotect_segments(const Elf_Phdr* phdr_table, size_t phdr_count, Elf_Addr load_bias);
-
-int phdr_table_protect_gnu_relro(const Elf_Phdr* phdr_table, size_t phdr_count, Elf_Addr load_bias);
-
+int phdr_table_map_gnu_relro(const ElfW(Phdr)* phdr_table, size_t phdr_count,
+                             ElfW(Addr) load_bias, int fd);
 
 #if defined(__arm__)
-int phdr_table_get_arm_exidx(const Elf_Phdr* phdr_table, size_t phdr_count, Elf_Addr load_bias,
-                             Elf_Addr** arm_exidx, unsigned* arm_exidix_count);
+int phdr_table_get_arm_exidx(const ElfW(Phdr)* phdr_table, size_t phdr_count, ElfW(Addr) load_bias,
+                             ElfW(Addr)** arm_exidx, size_t* arm_exidix_count);
 #endif
 
-void phdr_table_get_dynamic_section(const Elf_Phdr* phdr_table, size_t phdr_count,
-                                    Elf_Addr load_bias,
-                                    Elf_Dyn** dynamic, size_t* dynamic_count, Elf_Word* dynamic_flags);
+void phdr_table_get_dynamic_section(const ElfW(Phdr)* phdr_table, size_t phdr_count,
+                                    ElfW(Addr) load_bias, ElfW(Dyn)** dynamic,
+                                    ElfW(Word)* dynamic_flags);
 
 #endif /* LINKER_PHDR_H */

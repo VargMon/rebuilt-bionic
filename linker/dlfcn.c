@@ -20,6 +20,9 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <android/dlext.h>
+#include <android/api-level.h>
 
 #include <bionic/pthread_internal.h>
 #include "private/bionic_tls.h"
@@ -28,10 +31,10 @@
 
 /* This file hijacks the symbols stubbed out in libdl.so. */
 
-static pthread_mutex_t gDlMutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
+static pthread_mutex_t g_dl_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 
 static const char* __bionic_set_dlerror(char* new_value) {
-  char** dlerror_slot = &((((char**)(__get_tls()))[TLS_SLOT_DLERROR]));
+  char** dlerror_slot = &reinterpret_cast<char**>(__get_tls())[TLS_SLOT_DLERROR];
 
   const char* old_value = *dlerror_slot;
   *dlerror_slot = new_value;
@@ -41,7 +44,7 @@ static const char* __bionic_set_dlerror(char* new_value) {
 static void __bionic_format_dlerror(const char* msg, const char* detail) {
   char* buffer = __get_thread()->dlerror_buffer;
   strlcpy(buffer, msg, __BIONIC_DLERROR_BUFFER_SIZE);
-  if (detail != NULL) {
+  if (detail != nullptr) {
     strlcat(buffer, ": ", __BIONIC_DLERROR_BUFFER_SIZE);
     strlcat(buffer, detail, __BIONIC_DLERROR_BUFFER_SIZE);
   }
@@ -49,134 +52,131 @@ static void __bionic_format_dlerror(const char* msg, const char* detail) {
   __bionic_set_dlerror(buffer);
 }
 
-OLIBC_EXPORT
 const char* dlerror() {
-  const char* old_value = __bionic_set_dlerror(NULL);
+  const char* old_value = __bionic_set_dlerror(nullptr);
   return old_value;
 }
 
 void android_get_LD_LIBRARY_PATH(char* buffer, size_t buffer_size) {
-  ScopedPthreadMutexLocker locker;
-  ScopedPthreadMutexLocker_init(&locker, &gDlMutex);
+  ScopedPthreadMutexLocker locker(&g_dl_mutex);
   do_android_get_LD_LIBRARY_PATH(buffer, buffer_size);
-  ScopedPthreadMutexLocker_fini(&locker);
 }
 
 void android_update_LD_LIBRARY_PATH(const char* ld_library_path) {
-  ScopedPthreadMutexLocker locker;
-  ScopedPthreadMutexLocker_init(&locker, &gDlMutex);
+  ScopedPthreadMutexLocker locker(&g_dl_mutex);
   do_android_update_LD_LIBRARY_PATH(ld_library_path);
-  ScopedPthreadMutexLocker_fini(&locker);
 }
 
-OLIBC_EXPORT
-void* dlopen(const char* filename, int flags) {
-  ScopedPthreadMutexLocker locker;
-  ScopedPthreadMutexLocker_init(&locker, &gDlMutex);
-  soinfo* result = do_dlopen(filename, flags);
-  if (result == NULL) {
+static void* dlopen_ext(const char* filename, int flags, const android_dlextinfo* extinfo) {
+  ScopedPthreadMutexLocker locker(&g_dl_mutex);
+  soinfo* result = do_dlopen(filename, flags, extinfo);
+  if (result == nullptr) {
     __bionic_format_dlerror("dlopen failed", linker_get_error_buffer());
-    ScopedPthreadMutexLocker_fini(&locker);
-    return NULL;
+    return nullptr;
   }
-  ScopedPthreadMutexLocker_fini(&locker);
   return result;
 }
 
-OLIBC_EXPORT
+void* android_dlopen_ext(const char* filename, int flags, const android_dlextinfo* extinfo) {
+  return dlopen_ext(filename, flags, extinfo);
+}
+
+void* dlopen(const char* filename, int flags) {
+  return dlopen_ext(filename, flags, nullptr);
+}
+
 void* dlsym(void* handle, const char* symbol) {
-  ScopedPthreadMutexLocker locker;
-  ScopedPthreadMutexLocker_init(&locker, &gDlMutex);
+  ScopedPthreadMutexLocker locker(&g_dl_mutex);
 
-  if (handle == NULL) {
-    __bionic_format_dlerror("dlsym library handle is null", NULL);
-    ScopedPthreadMutexLocker_fini(&locker);
-    return NULL;
+#if !defined(__LP64__)
+  if (handle == nullptr) {
+    __bionic_format_dlerror("dlsym library handle is null", nullptr);
+    return nullptr;
   }
-  if (symbol == NULL) {
-    __bionic_format_dlerror("dlsym symbol name is null", NULL);
-    ScopedPthreadMutexLocker_fini(&locker);
-    return NULL;
+#endif
+
+  if (symbol == nullptr) {
+    __bionic_format_dlerror("dlsym symbol name is null", nullptr);
+    return nullptr;
   }
 
-  soinfo* found = NULL;
-  Elf_Sym* sym = NULL;
-  if (handle == RTLD_DEFAULT) {
-    sym = dlsym_linear_lookup(symbol, &found, NULL);
-  } else if (handle == RTLD_NEXT) {
-    void* ret_addr = __builtin_return_address(0);
-    soinfo* si = find_containing_library(ret_addr);
+  soinfo* found = nullptr;
+  const ElfW(Sym)* sym = nullptr;
+  void* caller_addr = __builtin_return_address(0);
+  soinfo* caller = find_containing_library(caller_addr);
 
-    sym = NULL;
-    if (si && si->next) {
-      sym = dlsym_linear_lookup(symbol, &found, si->next);
-    }
+  if (handle == RTLD_DEFAULT || handle == RTLD_NEXT) {
+    sym = dlsym_linear_lookup(symbol, &found, caller, handle);
   } else {
-    found = (soinfo*)(handle);
-    sym = dlsym_handle_lookup(found, symbol);
+    sym = dlsym_handle_lookup(reinterpret_cast<soinfo*>(handle), &found, symbol);
   }
 
-  if (sym != NULL) {
+  if (sym != nullptr) {
     unsigned bind = ELF_ST_BIND(sym->st_info);
 
-    if (bind == STB_GLOBAL && sym->st_shndx != 0) {
-      void *ret = (void*)(sym->st_value + found->load_bias);
-      ScopedPthreadMutexLocker_fini(&locker);
-      return ret;
+    if ((bind == STB_GLOBAL || bind == STB_WEAK) && sym->st_shndx != 0) {
+      return reinterpret_cast<void*>(found->resolve_symbol_address(sym));
     }
 
     __bionic_format_dlerror("symbol found but not global", symbol);
-    ScopedPthreadMutexLocker_fini(&locker);
-    return NULL;
+    return nullptr;
   } else {
     __bionic_format_dlerror("undefined symbol", symbol);
-    ScopedPthreadMutexLocker_fini(&locker);
-    return NULL;
+    return nullptr;
   }
 }
 
-OLIBC_EXPORT
 int dladdr(const void* addr, Dl_info* info) {
-  ScopedPthreadMutexLocker locker;
-  ScopedPthreadMutexLocker_init(&locker, &gDlMutex);
+  ScopedPthreadMutexLocker locker(&g_dl_mutex);
+
   // Determine if this address can be found in any library currently mapped.
   soinfo* si = find_containing_library(addr);
-  if (si == NULL) {
-    ScopedPthreadMutexLocker_fini(&locker);
+  if (si == nullptr) {
     return 0;
   }
 
   memset(info, 0, sizeof(Dl_info));
 
-  info->dli_fname = si->name;
+  info->dli_fname = si->get_realpath();
   // Address at which the shared object is loaded.
-  info->dli_fbase = (void*) si->base;
+  info->dli_fbase = reinterpret_cast<void*>(si->base);
 
   // Determine if any symbol in the library contains the specified address.
-  Elf_Sym *sym = dladdr_find_symbol(si, addr);
-  if (sym != NULL) {
-    info->dli_sname = si->strtab + sym->st_name;
-    info->dli_saddr = (void*)(si->load_bias + sym->st_value);
+  ElfW(Sym)* sym = si->find_symbol_by_address(addr);
+  if (sym != nullptr) {
+    info->dli_sname = si->get_string(sym->st_name);
+    info->dli_saddr = reinterpret_cast<void*>(si->resolve_symbol_address(sym));
   }
 
-  ScopedPthreadMutexLocker_fini(&locker);
   return 1;
 }
 
-OLIBC_EXPORT
 int dlclose(void* handle) {
-  ScopedPthreadMutexLocker locker;
-  ScopedPthreadMutexLocker_init(&locker, &gDlMutex);
-  int ret = do_dlclose((soinfo*)handle);
-  ScopedPthreadMutexLocker_fini(&locker);
-  return ret;
+  ScopedPthreadMutexLocker locker(&g_dl_mutex);
+  do_dlclose(reinterpret_cast<soinfo*>(handle));
+  // dlclose has no defined errors.
+  return 0;
 }
 
-#ifndef OLIBC_SINGLE_BINARY_SUPPORT
+int dl_iterate_phdr(int (*cb)(dl_phdr_info* info, size_t size, void* data), void* data) {
+  ScopedPthreadMutexLocker locker(&g_dl_mutex);
+  return do_dl_iterate_phdr(cb, data);
+}
+
+void android_set_application_target_sdk_version(uint32_t target) {
+  // lock to avoid modification in the middle of dlopen.
+  ScopedPthreadMutexLocker locker(&g_dl_mutex);
+  set_application_target_sdk_version(target);
+}
+
+uint32_t android_get_application_target_sdk_version() {
+  return get_application_target_sdk_version();
+}
+
 // name_offset: starting index of the name in libdl_info.strtab
 #define ELF32_SYM_INITIALIZER(name_offset, value, shndx) \
     { name_offset, \
-      (Elf32_Addr)((void*)(value)), \
+      reinterpret_cast<Elf32_Addr>(value), \
       /* st_size */ 0, \
       (shndx == 0) ? 0 : (STB_GLOBAL << 4), \
       /* st_other */ 0, \
@@ -188,140 +188,89 @@ int dlclose(void* handle) {
       (shndx == 0) ? 0 : (STB_GLOBAL << 4), \
       /* st_other */ 0, \
       shndx, \
-      reinterpret_cast<Elf64_Addr>(reinterpret_cast<void*>(value)), \
+      reinterpret_cast<Elf64_Addr>(value), \
       /* st_size */ 0, \
     }
 
-#if defined(__LP64__)
-#  define ELF_SYM_INITIALIZER ELF64_SYM_INITIALIZER
-#else
-#  define ELF_SYM_INITIALIZER ELF32_SYM_INITIALIZER
-#endif
-
+static const char ANDROID_LIBDL_STRTAB[] =
+  // 0000000 00011111 111112 22222222 2333333 3333444444444455555555556666666 6667777777777888888888899999 99999
+  // 0123456 78901234 567890 12345678 9012345 6789012345678901234567890123456 7890123456789012345678901234 56789
+    "dlopen\0dlclose\0dlsym\0dlerror\0dladdr\0android_update_LD_LIBRARY_PATH\0android_get_LD_LIBRARY_PATH\0dl_it"
+  // 00000000001 1111111112222222222 3333333333444444444455555555556666666666777 777777788888888889999999999
+  // 01234567890 1234567890123456789 0123456789012345678901234567890123456789012 345678901234567890123456789
+    "erate_phdr\0android_dlopen_ext\0android_set_application_target_sdk_version\0android_get_application_tar"
+  // 0000000000111111
+  // 0123456789012345
+    "get_sdk_version\0"
 #if defined(__arm__)
-  // 0000000 00011111 111112 22222222 2333333 3333444444444455555555556666666 6667777777777888888888899999 9999900000000001 1
-  // 0123456 78901234 567890 12345678 9012345 6789012345678901234567890123456 7890123456789012345678901234 5678901234567890 1
-#  define ANDROID_LIBDL_STRTAB \
-    "dlopen\0dlclose\0dlsym\0dlerror\0dladdr\0android_update_LD_LIBRARY_PATH\0android_get_LD_LIBRARY_PATH\0dl_iterate_phdr\0dl_unwind_find_exidx\0"
-#elif defined(__aarch64__) || defined(__i386__) || defined(__mips__) || defined(__x86_64__)
-  // 0000000 00011111 111112 22222222 2333333 3333444444444455555555556666666 6667777777777888888888899999 9999900000000001 1
-  // 0123456 78901234 567890 12345678 9012345 6789012345678901234567890123456 7890123456789012345678901234 5678901234567890 1
-#  define ANDROID_LIBDL_STRTAB \
-    "dlopen\0dlclose\0dlsym\0dlerror\0dladdr\0android_update_LD_LIBRARY_PATH\0android_get_LD_LIBRARY_PATH\0dl_iterate_phdr\0"
-#else
-#  error Unsupported architecture. Only arm, arm64, mips, x86, and x86_64 are presently supported.
+  // 216
+    "dl_unwind_find_exidx\0"
 #endif
+    ;
 
-static Elf_Sym gLibDlSymtab[] = {
+static ElfW(Sym) g_libdl_symtab[] = {
   // Total length of libdl_info.strtab, including trailing 0.
   // This is actually the STH_UNDEF entry. Technically, it's
   // supposed to have st_name == 0, but instead, it points to an index
   // in the strtab with a \0 to make iterating through the symtab easier.
-  ELF_SYM_INITIALIZER(sizeof(ANDROID_LIBDL_STRTAB) - 1, NULL, 0),
-  ELF_SYM_INITIALIZER(  0, &dlopen, 1),
-  ELF_SYM_INITIALIZER(  7, &dlclose, 1),
-  ELF_SYM_INITIALIZER( 15, &dlsym, 1),
-  ELF_SYM_INITIALIZER( 21, &dlerror, 1),
-  ELF_SYM_INITIALIZER( 29, &dladdr, 1),
-  ELF_SYM_INITIALIZER( 36, &android_update_LD_LIBRARY_PATH, 1),
-  ELF_SYM_INITIALIZER( 67, &android_get_LD_LIBRARY_PATH, 1),
-  ELF_SYM_INITIALIZER( 95, &dl_iterate_phdr, 1),
+  ELFW(SYM_INITIALIZER)(sizeof(ANDROID_LIBDL_STRTAB) - 1, nullptr, 0),
+  ELFW(SYM_INITIALIZER)(  0, &dlopen, 1),
+  ELFW(SYM_INITIALIZER)(  7, &dlclose, 1),
+  ELFW(SYM_INITIALIZER)( 15, &dlsym, 1),
+  ELFW(SYM_INITIALIZER)( 21, &dlerror, 1),
+  ELFW(SYM_INITIALIZER)( 29, &dladdr, 1),
+  ELFW(SYM_INITIALIZER)( 36, &android_update_LD_LIBRARY_PATH, 1),
+  ELFW(SYM_INITIALIZER)( 67, &android_get_LD_LIBRARY_PATH, 1),
+  ELFW(SYM_INITIALIZER)( 95, &dl_iterate_phdr, 1),
+  ELFW(SYM_INITIALIZER)(111, &android_dlopen_ext, 1),
+  ELFW(SYM_INITIALIZER)(130, &android_set_application_target_sdk_version, 1),
+  ELFW(SYM_INITIALIZER)(173, &android_get_application_target_sdk_version, 1),
 #if defined(__arm__)
-  ELF_SYM_INITIALIZER(111, &dl_unwind_find_exidx, 1),
+  ELFW(SYM_INITIALIZER)(216, &dl_unwind_find_exidx, 1),
 #endif
 };
 
 // Fake out a hash table with a single bucket.
 //
-// A search of the hash table will look through gLibDlSymtab starting with index 1, then
-// use gLibDlChains to find the next index to look at. gLibDlChains should be set up to
-// walk through every element in gLibDlSymtab, and then end with 0 (sentinel value).
+// A search of the hash table will look through g_libdl_symtab starting with index 1, then
+// use g_libdl_chains to find the next index to look at. g_libdl_chains should be set up to
+// walk through every element in g_libdl_symtab, and then end with 0 (sentinel value).
 //
-// That is, gLibDlChains should look like { 0, 2, 3, ... N, 0 } where N is the number
-// of actual symbols, or nelems(gLibDlSymtab)-1 (since the first element of gLibDlSymtab is not
+// That is, g_libdl_chains should look like { 0, 2, 3, ... N, 0 } where N is the number
+// of actual symbols, or nelems(g_libdl_symtab)-1 (since the first element of g_libdl_symtab is not
 // a real symbol). (See soinfo_elf_lookup().)
 //
 // Note that adding any new symbols here requires stubbing them out in libdl.
-static unsigned gLibDlBuckets[1] = { 1 };
+static unsigned g_libdl_buckets[1] = { 1 };
 #if defined(__arm__)
-static unsigned gLibDlChains[] = { 0, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
+static unsigned g_libdl_chains[] = { 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0 };
 #else
-static unsigned gLibDlChains[] = { 0, 2, 3, 4, 5, 6, 7, 8, 0 };
+static unsigned g_libdl_chains[] = { 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0 };
 #endif
+
+static uint8_t __libdl_info_buf[sizeof(soinfo)] __attribute__((aligned(8)));
+static soinfo* __libdl_info = nullptr;
 
 // This is used by the dynamic linker. Every process gets these symbols for free.
-soinfo libdl_info = {
-    "libdl.so",
-
-    .phdr = 0,
-    .phnum = 0,
-    .entry = 0,
-    .base = 0,
-    .size = 0,
-
-#if !defined(__LP64__)
-    .unused1 = 0,
-#endif
-
-    .dynamic = 0,
-
-#if !defined(__LP64__)
-    .unused2 = 0, .unused3 = 0,
-#endif
-
-    .next = 0,
-
-    .flags = FLAG_LINKED,
-
-    .strtab = ANDROID_LIBDL_STRTAB,
-    .symtab = gLibDlSymtab,
-
-    .nbucket = sizeof(gLibDlBuckets)/sizeof(unsigned),
-    .nchain = sizeof(gLibDlChains)/sizeof(unsigned),
-    .bucket = gLibDlBuckets,
-    .chain = gLibDlChains,
-
-#if defined(USE_RELA)
-    .plt_rela = 0,
-    .plt_rela_count = 0,
-    .rela = 0,
-    .rela_count = 0,
-#else
-    .plt_got = 0,
-    .plt_rel = 0,
-    .plt_rel_count = 0,
-    .rel = 0,
-    .rel_count = 0,
-#endif
-
-    .preinit_array = 0,
-    .preinit_array_count = 0,
-
-    .init_array = 0,
-    .init_array_count = 0,
-
-    .fini_array = 0,
-    .fini_array_count = 0,
-
-    .init_func = 0,
-    .fini_func = 0,
-
+soinfo* get_libdl_info() {
+  if (__libdl_info == nullptr) {
+    __libdl_info = new (__libdl_info_buf) soinfo("libdl.so", nullptr, 0, RTLD_GLOBAL);
+    __libdl_info->flags_ |= FLAG_LINKED;
+    __libdl_info->strtab_ = ANDROID_LIBDL_STRTAB;
+    __libdl_info->symtab_ = g_libdl_symtab;
+    __libdl_info->nbucket_ = sizeof(g_libdl_buckets)/sizeof(unsigned);
+    __libdl_info->nchain_ = sizeof(g_libdl_chains)/sizeof(unsigned);
+    __libdl_info->bucket_ = g_libdl_buckets;
+    __libdl_info->chain_ = g_libdl_chains;
+    __libdl_info->ref_count_ = 1;
+    __libdl_info->strtab_size_ = sizeof(ANDROID_LIBDL_STRTAB);
+    __libdl_info->local_group_root_ = __libdl_info;
+    __libdl_info->soname_ = "libdl.so";
+    __libdl_info->target_sdk_version_ = __ANDROID_API__;
 #if defined(__arm__)
-    .ARM_exidx = 0,
-    .ARM_exidx_count = 0,
-#elif defined(__mips__)
-    .mips_symtabno = 0,
-    .mips_local_gotno = 0,
-    .mips_gotsym = 0,
+    strlcpy(__libdl_info->old_name_, __libdl_info->soname_, sizeof(__libdl_info->old_name_));
 #endif
+  }
 
-    .ref_count = 0,
-    { .l_addr = 0, .l_name = 0, .l_ld = 0, .l_next = 0, .l_prev = 0, },
-    .constructors_called = false,
-    .load_bias = 0,
-#if !defined(__LP64__)
-    .has_text_relocations = false,
-#endif
-    .has_DT_SYMBOLIC = true,
-};
-#endif /* !defined(OLIBC_SINGLE_BINARY_SUPPORT) */
+  return __libdl_info;
+}

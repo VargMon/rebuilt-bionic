@@ -9,11 +9,9 @@ ENTRY(setrlimit)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(setrlimit)
 
-    .globl _C_LABEL(setrlimit64)
-    .equ _C_LABEL(setrlimit64), _C_LABEL(setrlimit)
+ALIAS_SYMBOL(setrlimit64, setrlimit)

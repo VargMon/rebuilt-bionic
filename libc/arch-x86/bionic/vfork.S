@@ -32,14 +32,15 @@
 
 ENTRY(vfork)
   popl    %ecx  // Grab the return address.
+  .cfi_adjust_cfa_offset 4
+  .cfi_rel_offset ecx, 0
   movl    $__NR_vfork, %eax
   int     $0x80
   cmpl    $-MAX_ERRNO, %eax
   jb      1f
   negl    %eax
   pushl   %eax
-  call    __set_errno
-  orl     $-1, %eax
+  call    __set_errno_internal
 1:
-    jmp     *%ecx  // Jump to the stored return address.
+  jmp     *%ecx  // Jump to the stored return address.
 END(vfork)

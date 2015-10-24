@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
+#include <fcntl.h>
 #include <unistd.h>
 
-class TemporaryFile {
+#include "private/bionic_macros.h"
+
+template <typename T = int (*)(char*)>
+class GenericTemporaryFile {
  public:
-  TemporaryFile() {
+  GenericTemporaryFile(T mk_fn = mkstemp) : mk_fn(mk_fn) {
     // Since we might be running on the host or the target, and if we're
     // running on the host we might be running under bionic or glibc,
     // let's just try both possible temporary directories and take the
@@ -29,17 +33,55 @@ class TemporaryFile {
     }
   }
 
-  ~TemporaryFile() {
+  GenericTemporaryFile(const char* dirpath, T mk_fn = mkstemp) : mk_fn(mk_fn) {
+    init(dirpath);
+  }
+
+  ~GenericTemporaryFile() {
     close(fd);
     unlink(filename);
+  }
+
+  void reopen() {
+    close(fd);
+    fd = open(filename, O_RDWR);
   }
 
   int fd;
   char filename[1024];
 
  private:
+  T mk_fn;
+
   void init(const char* tmp_dir) {
     snprintf(filename, sizeof(filename), "%s/TemporaryFile-XXXXXX", tmp_dir);
-    fd = mkstemp(filename);
+    fd = mk_fn(filename);
   }
+
+  DISALLOW_COPY_AND_ASSIGN(GenericTemporaryFile);
+};
+
+typedef GenericTemporaryFile<> TemporaryFile;
+
+class TemporaryDir {
+ public:
+  TemporaryDir() {
+    if (!init("/data/local/tmp")) {
+      init("/tmp");
+    }
+  }
+
+  ~TemporaryDir() {
+    rmdir(dirname);
+  }
+
+  char dirname[1024];
+
+ private:
+  bool init(const char* tmp_dir) {
+    snprintf(dirname, sizeof(dirname), "%s/TemporaryDir-XXXXXX", tmp_dir);
+    return (mkdtemp(dirname) != NULL);
+  }
+
+  DISALLOW_COPY_AND_ASSIGN(TemporaryDir);
 };

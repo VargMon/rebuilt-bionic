@@ -10,11 +10,9 @@ ENTRY(mmap)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(mmap)
 
-    .globl _C_LABEL(mmap64)
-    .equ _C_LABEL(mmap64), _C_LABEL(mmap)
+ALIAS_SYMBOL(mmap64, mmap)

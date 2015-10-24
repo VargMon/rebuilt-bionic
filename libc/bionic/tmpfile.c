@@ -39,42 +39,41 @@
 #include <unistd.h>
 
 #include "private/ErrnoRestorer.h"
-typedef struct ScopedSignalBlocker ScopedSignalBlocker;
-struct ScopedSignalBlocker {
+
+class ScopedSignalBlocker {
+ public:
+  ScopedSignalBlocker() {
+    sigset_t set;
+    sigfillset(&set);
+    sigprocmask(SIG_BLOCK, &set, &old_set_);
+  }
+
+  ~ScopedSignalBlocker() {
+    sigprocmask(SIG_SETMASK, &old_set_, NULL);
+  }
+
+ private:
   sigset_t old_set_;
 };
 
-static inline
-void ScopedSignalBlocker_init(ScopedSignalBlocker *ssb) {
-  sigset_t set;
-  sigfillset(&set);
-  sigprocmask(SIG_BLOCK, &set, &ssb->old_set_);
-}
-
-static inline
-void ScopedSignalBlocker_fini(ScopedSignalBlocker *ssb) {
-  sigprocmask(SIG_SETMASK, &ssb->old_set_, NULL);
-}
-
 static FILE* __tmpfile_dir(const char* tmp_dir) {
-  char buf[PATH_MAX];
-  int path_length = snprintf(buf, sizeof(buf), "%s/tmp.XXXXXXXXXX", tmp_dir);
-  if (path_length >= (int)(sizeof(buf))) {
+  char* path = NULL;
+  if (asprintf(&path, "%s/tmp.XXXXXXXXXX", tmp_dir) == -1) {
     return NULL;
   }
 
   int fd;
   {
     ScopedSignalBlocker ssb;
-    ScopedSignalBlocker_init(&ssb);
-    fd = mkstemp(buf);
+    fd = mkstemp(path);
     if (fd == -1) {
-      ScopedSignalBlocker_fini(&ssb);
+      free(path);
       return NULL;
     }
 
     // Unlink the file now so that it's removed when closed.
-    unlink(buf);
+    unlink(path);
+    free(path);
 
     // Can we still use the file now it's unlinked?
     // File systems without hard link support won't have the usual Unix semantics.
@@ -82,10 +81,7 @@ static FILE* __tmpfile_dir(const char* tmp_dir) {
     int rc = fstat(fd, &sb);
     if (rc == -1) {
       ErrnoRestorer errno_restorer;
-      ErrnoRestorer_init(&errno_restorer);
       close(fd);
-      ScopedSignalBlocker_fini(&ssb);
-      ErrnoRestorer_fini(&errno_restorer);
       return NULL;
     }
   }
@@ -98,9 +94,7 @@ static FILE* __tmpfile_dir(const char* tmp_dir) {
 
   // Failure. Clean up. We already unlinked, so we just need to close.
   ErrnoRestorer errno_restorer;
-  ErrnoRestorer_init(&errno_restorer);
   close(fd);
-  ErrnoRestorer_fini(&errno_restorer);
   return NULL;
 }
 

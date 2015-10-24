@@ -21,7 +21,7 @@
 #include <linux/types.h>
 struct siginfo;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
-#define NSIG 32
+#define _KERNEL_NSIG 32
 typedef unsigned long sigset_t;
 #define SIGHUP 1
 #define SIGINT 2
@@ -66,8 +66,8 @@ typedef unsigned long sigset_t;
 #define SIGSYS 31
 #define SIGUNUSED 31
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
-#define SIGRTMIN 32
-#define SIGRTMAX _NSIG
+#define __SIGRTMIN 32
+#define __SIGRTMAX _KERNEL__NSIG
 #define SIGSWI 32
 #define SA_NOCLDSTOP 0x00000001
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
@@ -88,23 +88,23 @@ typedef unsigned long sigset_t;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 #include <asm-generic/signal-defs.h>
 struct sigaction {
- union {
- __sighandler_t _sa_handler;
+  union {
+    __sighandler_t _sa_handler;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
- void (*_sa_sigaction)(int, struct siginfo *, void *);
- } _u;
- sigset_t sa_mask;
- unsigned long sa_flags;
+    void(* _sa_sigaction) (int, struct siginfo *, void *);
+  } _u;
+  sigset_t sa_mask;
+  unsigned long sa_flags;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
- void (*sa_restorer)(void);
+  void(* sa_restorer) (void);
 };
 #define sa_handler _u._sa_handler
 #define sa_sigaction _u._sa_sigaction
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 typedef struct sigaltstack {
- void __user *ss_sp;
- int ss_flags;
- size_t ss_size;
+  void __user * ss_sp;
+  int ss_flags;
+  size_t ss_size;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 } stack_t;
 #endif

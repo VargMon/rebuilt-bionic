@@ -22,34 +22,44 @@
 #define NTP_API 4
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 struct timex {
- unsigned int modes;
- long offset;
- long freq;
+  unsigned int modes;
+  __kernel_long_t offset;
+  __kernel_long_t freq;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
- long maxerror;
- long esterror;
- int status;
- long constant;
+  __kernel_long_t maxerror;
+  __kernel_long_t esterror;
+  int status;
+  __kernel_long_t constant;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
- long precision;
- long tolerance;
- struct timeval time;
- long tick;
+  __kernel_long_t precision;
+  __kernel_long_t tolerance;
+  struct timeval time;
+  __kernel_long_t tick;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
- long ppsfreq;
- long jitter;
- int shift;
- long stabil;
+  __kernel_long_t ppsfreq;
+  __kernel_long_t jitter;
+  int shift;
+  __kernel_long_t stabil;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
- long jitcnt;
- long calcnt;
- long errcnt;
- long stbcnt;
+  __kernel_long_t jitcnt;
+  __kernel_long_t calcnt;
+  __kernel_long_t errcnt;
+  __kernel_long_t stbcnt;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
- int tai;
- int :32; int :32; int :32; int :32;
- int :32; int :32; int :32; int :32;
- int :32; int :32; int :32;
+  int tai;
+  int : 32;
+  int : 32;
+  int : 32;
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
+  int : 32;
+  int : 32;
+  int : 32;
+  int : 32;
+/* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
+  int : 32;
+  int : 32;
+  int : 32;
+  int : 32;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 };
 #define ADJ_OFFSET 0x0001
@@ -99,7 +109,7 @@ struct timex {
 #define STA_NANO 0x2000
 #define STA_MODE 0x4000
 #define STA_CLK 0x8000
-#define STA_RONLY (STA_PPSSIGNAL | STA_PPSJITTER | STA_PPSWANDER |   STA_PPSERROR | STA_CLOCKERR | STA_NANO | STA_MODE | STA_CLK)
+#define STA_RONLY (STA_PPSSIGNAL | STA_PPSJITTER | STA_PPSWANDER | STA_PPSERROR | STA_CLOCKERR | STA_NANO | STA_MODE | STA_CLK)
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 #define TIME_OK 0
 #define TIME_INS 1

@@ -40,6 +40,8 @@ __LIBC_HIDDEN__ void timespec_from_ms(struct timespec* ts, const int ms);
 
 __LIBC_HIDDEN__ void timeval_from_timespec(struct timeval* tv, const struct timespec* ts);
 
+__LIBC_HIDDEN__ bool timespec_from_absolute_timespec(timespec& ts, const timespec& abs_ts, clockid_t clock);
+
 __END_DECLS
 
 #endif

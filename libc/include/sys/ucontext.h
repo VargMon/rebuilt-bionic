@@ -59,8 +59,7 @@ enum {
 
 typedef int greg_t;
 typedef greg_t gregset_t[NGREG];
-
-/* TODO: fpregset_t. */
+typedef struct user_fpregs fpregset_t;
 
 #include <asm/sigcontext.h>
 typedef struct sigcontext mcontext_t;
@@ -71,12 +70,25 @@ typedef struct ucontext {
   stack_t uc_stack;
   mcontext_t uc_mcontext;
   sigset_t uc_sigmask;
-  /* TODO: uc_regspace */
+  // Android has a wrong (smaller) sigset_t on ARM.
+  uint32_t __padding_rt_sigset;
+  // The kernel adds extra padding after uc_sigmask to match glibc sigset_t on ARM.
+  char __padding[120];
+  unsigned long uc_regspace[128] __attribute__((__aligned__(8)));
 } ucontext_t;
 
 #elif defined(__aarch64__)
 
-/* TODO: gregset_t and fpregset_t. */
+#define NGREG 34 /* x0..x30 + sp + pc + pstate */
+typedef unsigned long greg_t;
+typedef greg_t gregset_t[NGREG];
+
+struct user_fpsimd_struct {
+  long double vregs[32];
+  uint32_t fpsr;
+  uint32_t fpcr;
+};
+typedef struct user_fpsimd_struct fpregset_t;
 
 #include <asm/sigcontext.h>
 typedef struct sigcontext mcontext_t;
@@ -86,6 +98,8 @@ typedef struct ucontext {
   struct ucontext *uc_link;
   stack_t uc_stack;
   sigset_t uc_sigmask;
+  // The kernel adds extra padding after uc_sigmask to match glibc sigset_t on ARM64.
+  char __padding[128 - sizeof(sigset_t)];
   mcontext_t uc_mcontext;
 } ucontext_t;
 
@@ -149,7 +163,9 @@ typedef struct ucontext {
   stack_t uc_stack;
   mcontext_t uc_mcontext;
   sigset_t uc_sigmask;
-  /* TODO: __fpregs_mem? */
+  // Android has a wrong (smaller) sigset_t on x86.
+  uint32_t __padding_rt_sigset;
+  struct _libc_fpstate __fpregs_mem;
 } ucontext_t;
 
 #elif defined(__mips__)
@@ -172,6 +188,25 @@ typedef struct fpregset {
   } fp_r;
 } fpregset_t;
 
+#ifdef __LP64__
+typedef struct {
+  gregset_t gregs;
+  fpregset_t fpregs;
+  greg_t mdhi;
+  greg_t hi1;
+  greg_t hi2;
+  greg_t hi3;
+  greg_t mdlo;
+  greg_t lo1;
+  greg_t lo2;
+  greg_t lo3;
+  greg_t pc;
+  uint32_t fpc_csr;
+  uint32_t used_math;
+  uint32_t dsp;
+  uint32_t reserved;
+} mcontext_t;
+#else
 typedef struct {
   unsigned regmask;
   unsigned status;
@@ -192,6 +227,7 @@ typedef struct {
   unsigned long hi3;
   unsigned long lo3;
 } mcontext_t;
+#endif
 
 typedef struct ucontext {
   unsigned long uc_flags;
@@ -200,10 +236,6 @@ typedef struct ucontext {
   mcontext_t uc_mcontext;
   sigset_t uc_sigmask;
 } ucontext_t;
-
-#elif defined(__mips64__)
-
-#error TODO
 
 #elif defined(__x86_64__)
 
@@ -237,12 +269,36 @@ enum {
 typedef long greg_t;
 typedef greg_t gregset_t[NGREG];
 
-typedef struct user_i387_struct* fpregset_t;
+struct _libc_fpxreg {
+  unsigned short significand[4];
+  unsigned short exponent;
+  unsigned short padding[3];
+};
+
+struct _libc_xmmreg {
+  uint32_t element[4];
+};
+
+struct _libc_fpstate {
+  uint16_t cwd;
+  uint16_t swd;
+  uint16_t ftw;
+  uint16_t fop;
+  uint64_t rip;
+  uint64_t rdp;
+  uint32_t mxcsr;
+  uint32_t mxcr_mask;
+  struct _libc_fpxreg _st[8];
+  struct _libc_xmmreg _xmm[16];
+  uint32_t padding[24];
+};
+
+typedef struct _libc_fpstate* fpregset_t;
 
 typedef struct {
   gregset_t gregs;
   fpregset_t fpregs;
-  /* TODO: reserved space? */
+  unsigned long __reserved1[8];
 } mcontext_t;
 
 typedef struct ucontext {
@@ -251,7 +307,7 @@ typedef struct ucontext {
   stack_t uc_stack;
   mcontext_t uc_mcontext;
   sigset_t uc_sigmask;
-  /* TODO: __fpregs_mem? */
+  struct _libc_fpstate __fpregs_mem;
 } ucontext_t;
 
 #endif

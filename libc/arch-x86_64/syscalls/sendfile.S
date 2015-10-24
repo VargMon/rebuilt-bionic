@@ -10,11 +10,9 @@ ENTRY(sendfile)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(sendfile)
 
-    .globl _C_LABEL(sendfile64)
-    .equ _C_LABEL(sendfile64), _C_LABEL(sendfile)
+ALIAS_SYMBOL(sendfile64, sendfile)

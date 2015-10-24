@@ -26,13 +26,12 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/cdefs.h>
 #include <asm/prctl.h>
 #include <stdint.h>
 
 extern int __arch_prctl(int, unsigned long);
 
-int __set_tls(void* ptr) {
-  // We also need to write the location of the tls to ptr[0].
-  *(void**) ptr = ptr;
+__LIBC_HIDDEN__ int __set_tls(void* ptr) {
   return __arch_prctl(ARCH_SET_FS, (uintptr_t) ptr);
 }

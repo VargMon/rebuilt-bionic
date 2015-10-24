@@ -27,28 +27,26 @@
  */
 
 #include <errno.h>
+#include <pthread.h>
 
-#include "pthread_accessor.h"
+#include "pthread_internal.h"
 
 int pthread_detach(pthread_t t) {
-  pthread_accessor thread;
-  pthread_accessor_init(&thread, t);
-  if (pthread_accessor_get(&thread) == NULL) {
-      pthread_accessor_fini(&thread);
-      return ESRCH;
+  pthread_internal_t* thread = __pthread_internal_find(t);
+  if (thread == NULL) {
+    return ESRCH;
   }
 
-  if (pthread_accessor_get(&thread)->attr.flags & PTHREAD_ATTR_FLAG_DETACHED) {
-    pthread_accessor_fini(&thread);
-    return EINVAL; // Already detached.
+  ThreadJoinState old_state = THREAD_NOT_JOINED;
+  while (old_state == THREAD_NOT_JOINED &&
+         !atomic_compare_exchange_weak(&thread->join_state, &old_state, THREAD_DETACHED)) {
   }
 
-  if (pthread_accessor_get(&thread)->attr.flags & PTHREAD_ATTR_FLAG_JOINED) {
-    pthread_accessor_fini(&thread);
-    return 0; // Already being joined; silently do nothing, like glibc.
+  if (old_state == THREAD_NOT_JOINED) {
+    return 0;
+  } else if (old_state == THREAD_EXITED_NOT_JOINED) {
+    // Use pthread_join to clean it up.
+    return pthread_join(t, NULL);
   }
-
-  pthread_accessor_get(&thread)->attr.flags |= PTHREAD_ATTR_FLAG_DETACHED;
-  pthread_accessor_fini(&thread);
-  return 0;
+  return EINVAL;
 }

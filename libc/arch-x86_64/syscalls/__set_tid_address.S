@@ -9,9 +9,8 @@ ENTRY(__set_tid_address)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__set_tid_address)
-.hidden _C_LABEL(__set_tid_address)
+.hidden __set_tid_address

@@ -3,22 +3,14 @@
 #include <private/bionic_asm.h>
 
 ENTRY(pwrite64)
-    stp     x29, x30, [sp, #-16]!
-    mov     x29,  sp
-    str     x8,       [sp, #-16]!
-
     mov     x8, __NR_pwrite64
     svc     #0
 
-    ldr     x8,       [sp], #16
-    ldp     x29, x30, [sp], #16
-
     cmn     x0, #(MAX_ERRNO + 1)
     cneg    x0, x0, hi
-    b.hi    __set_errno
+    b.hi    __set_errno_internal
 
     ret
 END(pwrite64)
 
-    .globl _C_LABEL(pwrite)
-    .equ _C_LABEL(pwrite), _C_LABEL(pwrite64)
+ALIAS_SYMBOL(pwrite, pwrite64)

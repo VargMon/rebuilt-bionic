@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include <machine/asm.h>
-#include "private/libc_events.h"
+#include <private/bionic_asm.h>
+#include <private/libc_events.h>
 
     .syntax unified
     .fpu    neon
@@ -40,12 +40,10 @@
 ENTRY(__strcat_chk)
     pld     [r0, #0]
     push    {r0, lr}
-    .save   {r0, lr}
     .cfi_def_cfa_offset 8
     .cfi_rel_offset r0, 0
     .cfi_rel_offset lr, 4
     push    {r4, r5}
-    .save   {r4, r5}
     .cfi_adjust_cfa_offset 8
     .cfi_rel_offset r4, 0
     .cfi_rel_offset r5, 4
@@ -199,8 +197,6 @@ END(__strcat_chk)
 #include "memcpy_base.S"
 
 ENTRY_PRIVATE(__strcat_chk_fail)
-    .save   {r0, lr}
-    .save   {r4, r5}
     .cfi_def_cfa_offset 8
     .cfi_rel_offset r0, 0
     .cfi_rel_offset lr, 4

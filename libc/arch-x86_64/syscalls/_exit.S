@@ -9,8 +9,9 @@ ENTRY(_exit)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(_exit)
+
+ALIAS_SYMBOL(_Exit, _exit)

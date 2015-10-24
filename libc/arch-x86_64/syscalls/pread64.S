@@ -10,11 +10,9 @@ ENTRY(pread64)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(pread64)
 
-    .globl _C_LABEL(pread)
-    .equ _C_LABEL(pread), _C_LABEL(pread64)
+ALIAS_SYMBOL(pread, pread64)

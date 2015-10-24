@@ -1,4 +1,4 @@
-/*	$OpenBSD: findfp.c,v 1.9 2005/08/08 08:05:36 espie Exp $ */
+/*	$OpenBSD: findfp.c,v 1.15 2013/12/17 16:33:27 deraadt Exp $ */
 /*-
  * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -41,34 +41,33 @@
 #include "glue.h"
 #include "private/thread_private.h"
 
+#define ALIGNBYTES (sizeof(uintptr_t) - 1)
+#define ALIGN(p) (((uintptr_t)(p) + ALIGNBYTES) &~ ALIGNBYTES)
+
 int	__sdidinit;
 
 #define	NDYNAMIC 10		/* add ten more whenever necessary */
 
 #define	std(flags, file) \
 	{0,0,0,flags,file,{0,0},0,__sF+file,__sclose,__sread,__sseek,__swrite, \
-	 {(unsigned char *)(__sFext+file), 0},NULL,0,{0,0,0},{0},{0,0},0,0}
-/*	 p r w flags file _bf z  cookie      close    read    seek    write
-	 ext */
+	    {(unsigned char *)(__sFext+file), 0},NULL,0,{0},{0},{0,0},0,0}
 
-/* the usual - (stdin + stdout + stderr) */
+				/* the usual - (stdin + stdout + stderr) */
 static FILE usual[FOPEN_MAX - 3];
 static struct __sfileext usualext[FOPEN_MAX - 3];
 static struct glue uglue = { 0, FOPEN_MAX - 3, usual };
 static struct glue *lastglue = &uglue;
 _THREAD_PRIVATE_MUTEX(__sfp_mutex);
 
-static struct __sfileext __sFext[3] = {
-	_FILEEXT_INITIALIZER,
-	_FILEEXT_INITIALIZER,
-	_FILEEXT_INITIALIZER,
-};
-
+static struct __sfileext __sFext[3];
 FILE __sF[3] = {
 	std(__SRD, STDIN_FILENO),		/* stdin */
 	std(__SWR, STDOUT_FILENO),		/* stdout */
 	std(__SWR|__SNBF, STDERR_FILENO)	/* stderr */
 };
+FILE* stdin = &__sF[0];
+FILE* stdout = &__sF[1];
+FILE* stderr = &__sF[2];
 struct glue __sglue = { &uglue, 3, __sF };
 
 static struct glue *
@@ -145,35 +144,11 @@ found:
 	return (fp);
 }
 
-#if 0
-#define getdtablesize()	sysconf(_SC_OPEN_MAX)
-
 /*
- * XXX.  Force immediate allocation of internal memory.  Not used by stdio,
- * but documented historically for certain applications.  Bad applications.
- */
-void
-f_prealloc(void)
-{
-	struct glue *g;
-	int n;
-
-	n = getdtablesize() - FOPEN_MAX + 20;		/* 20 for slop. */
-	for (g = &__sglue; (n -= g->niobs) > 0 && g->next; g = g->next)
-		/* void */;
-	if (n > 0 && ((g = moreglue(n)) != NULL)) {
-		_THREAD_PRIVATE_MUTEX_LOCK(__sfp_mutex);
-		lastglue->next = g;
-		lastglue = g;
-		_THREAD_PRIVATE_MUTEX_UNLOCK(__sfp_mutex);
-	}
-}
-#endif
-
-/*
- * exit() calls _cleanup() through *__cleanup, set whenever we
- * open or buffer a file.  This chicanery is done so that programs
- * that do not use stdio need not link it all in.
+ * exit() and abort() call _cleanup() through the callback registered
+ * with __atexit_register_cleanup(), set whenever we open or buffer a
+ * file. This chicanery is done so that programs that do not use stdio
+ * need not link it all in.
  *
  * The name `_cleanup' is, alas, fairly well known outside stdio.
  */
@@ -191,17 +166,26 @@ void
 __sinit(void)
 {
 	_THREAD_PRIVATE_MUTEX(__sinit_mutex);
-	int i;
 
 	_THREAD_PRIVATE_MUTEX_LOCK(__sinit_mutex);
-	if (__sdidinit)
-		goto out;	/* bail out if caller lost the race */
-	for (i = 0; i < FOPEN_MAX - 3; i++) {
+	if (__sdidinit) {
+		/* bail out if caller lost the race */
+		_THREAD_PRIVATE_MUTEX_UNLOCK(__sinit_mutex);
+		return;
+	}
+
+	/* Initialize stdin/stdout/stderr (for the recursive mutex). http://b/18208568. */
+	for (size_t i = 0; i < 3; ++i) {
+		_FILEEXT_SETUP(__sF+i, __sFext+i);
+	}
+	/* Initialize the pre-allocated (but initially unused) streams. */
+	for (size_t i = 0; i < FOPEN_MAX - 3; ++i) {
 		_FILEEXT_SETUP(usual+i, usualext+i);
 	}
+
 	/* make sure we clean up on exit */
-	__cleanup = _cleanup; /* conservative */
+	__atexit_register_cleanup(_cleanup); /* conservative */
 	__sdidinit = 1;
-out:
+
 	_THREAD_PRIVATE_MUTEX_UNLOCK(__sinit_mutex);
 }

@@ -30,14 +30,14 @@
 
 #include <fcntl.h>
 #include <stdio.h> // For snprintf.
+#include <string.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "pthread_accessor.h"
-#include "pthread_internal.h"
 #include "private/ErrnoRestorer.h"
+#include "pthread_internal.h"
 
 // This value is not exported by kernel headers.
 #define MAX_TASK_COMM_LEN 16
@@ -45,57 +45,37 @@
 
 int pthread_setname_np(pthread_t t, const char* thread_name) {
   ErrnoRestorer errno_restorer;
-  ErrnoRestorer_init(&errno_restorer);
-
-  if (thread_name == NULL) {
-    ErrnoRestorer_fini(&errno_restorer);
-    return EINVAL;
-  }
 
   size_t thread_name_len = strlen(thread_name);
   if (thread_name_len >= MAX_TASK_COMM_LEN) {
-    ErrnoRestorer_fini(&errno_restorer);
     return ERANGE;
   }
 
   // Changing our own name is an easy special case.
   if (t == pthread_self()) {
-    int ret = prctl(PR_SET_NAME, thread_name) ? errno : 0;
-    ErrnoRestorer_fini(&errno_restorer);
-    return ret;
+    return prctl(PR_SET_NAME, thread_name) ? errno : 0;
   }
 
   // We have to change another thread's name.
-  pid_t tid = 0;
-  {
-    pthread_accessor thread;
-    pthread_accessor_init(&thread, t);
-    if (pthread_accessor_get(&thread) == NULL) {
-      pthread_accessor_fini(&thread);
-      ErrnoRestorer_fini(&errno_restorer);
-      return ESRCH;
-    }
-    tid = pthread_accessor_get(&thread)->tid;
-    pthread_accessor_fini(&thread);
-  }  char comm_name[sizeof(TASK_COMM_FMT) + 8];
+  pthread_internal_t* thread = __pthread_internal_find(t);
+  if (thread == NULL) {
+    return ENOENT;
+  }
+  pid_t tid = thread->tid;
+
+  char comm_name[sizeof(TASK_COMM_FMT) + 8];
   snprintf(comm_name, sizeof(comm_name), TASK_COMM_FMT, tid);
-  int fd = open(comm_name, O_WRONLY);
+  int fd = open(comm_name, O_CLOEXEC | O_WRONLY);
   if (fd == -1) {
-    int ret = errno;
-    ErrnoRestorer_fini(&errno_restorer);
-    return ret;
+    return errno;
   }
   ssize_t n = TEMP_FAILURE_RETRY(write(fd, thread_name, thread_name_len));
   close(fd);
 
   if (n < 0) {
-    int ret = errno;
-    ErrnoRestorer_fini(&errno_restorer);
-    return ret;
-  } else if (n != (ssize_t)(thread_name_len)) {
-    ErrnoRestorer_fini(&errno_restorer);
+    return errno;
+  } else if (n != static_cast<ssize_t>(thread_name_len)) {
     return EIO;
   }
-  ErrnoRestorer_fini(&errno_restorer);
   return 0;
 }

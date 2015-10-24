@@ -1,3 +1,9 @@
+*.o
+*.lo
+*.a
+*.so
+*.so.1
+*.orig
 *.pyc
 *.*~
 libc/kernel/original

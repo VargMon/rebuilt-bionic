@@ -31,33 +31,30 @@
 // pid_t __bionic_clone(int flags, void* child_stack, pid_t* parent_tid, void* tls, pid_t* child_tid, int (*fn)(void*), void* arg);
 
 ENTRY(__bionic_clone)
-    stp     x29, x30, [sp, #-16]!
-    mov     x29,  sp
-    str     x8,       [sp, #-16]!
+    # Push 'fn' and 'arg' onto the child stack.
+    stp     x5, x6, [x1, #-16]!
 
-    /* store thread pointer & args in child stack */
-    stp     x5, x6, [x1, #-16]
-
-    /* sys_clone */
-    uxtw    x0, w0
+    # Make the system call.
     mov     x8, __NR_clone
     svc     #0
 
-    /* check for child/parent */
-    cbz     x0,1f
+    # Are we the child?
+    cbz     x0, .L_bc_child
 
-    ldr     x8,       [sp], #16
-    ldp     x29, x30, [sp], #16
-
+    # Set errno if something went wrong.
     cmn     x0, #(MAX_ERRNO + 1)
     cneg    x0, x0, hi
-    b.hi    __set_errno
+    b.hi    __set_errno_internal
 
     ret
 
-    /* thread initialization - set the end of the frame record chain */
-1:
-    mov     x29, xzr
-    ldp     x0, x1, [sp, #-16]
-    b       __bionic_clone_entry
+.L_bc_child:
+    # We're in the child now. Set the end of the frame record chain.
+    mov     x29, #0
+    # Setting x30 to 0 will make the unwinder stop at __start_thread.
+    mov     x30, #0
+    # Call __start_thread with the 'fn' and 'arg' we stored on the child stack.
+    ldp     x0, x1, [sp], #16
+    b       __start_thread
 END(__bionic_clone)
+.hidden __bionic_clone

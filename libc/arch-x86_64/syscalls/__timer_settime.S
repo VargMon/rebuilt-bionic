@@ -10,9 +10,8 @@ ENTRY(__timer_settime)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(__timer_settime)
-.hidden _C_LABEL(__timer_settime)
+.hidden __timer_settime

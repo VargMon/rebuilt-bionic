@@ -1,11 +1,16 @@
-$(call libc-add-cpu-variant-src,MEMCPY,arch-arm/cortex-a9/bionic/memcpy.S)
-$(call libc-add-cpu-variant-src,MEMSET,arch-arm/cortex-a9/bionic/memset.S)
-$(call libc-add-cpu-variant-src,STRCAT,arch-arm/cortex-a9/bionic/strcat.S)
-$(call libc-add-cpu-variant-src,STRCMP,arch-arm/cortex-a9/bionic/strcmp.S)
-$(call libc-add-cpu-variant-src,STRCPY,arch-arm/cortex-a9/bionic/strcpy.S)
-$(call libc-add-cpu-variant-src,STRLEN,arch-arm/cortex-a9/bionic/strlen.S)
-$(call libc-add-cpu-variant-src,MEMCHR,arch-arm/cortex-a9/bionic/memchr.S)
-$(call libc-add-cpu-variant-src,__STRCAT_CHK,arch-arm/cortex-a9/bionic/__strcat_chk.S)
-$(call libc-add-cpu-variant-src,__STRCPY_CHK,arch-arm/cortex-a9/bionic/__strcpy_chk.S)
+libc_bionic_src_files_arm += \
+    arch-arm/cortex-a9/bionic/memcpy.S \
+    arch-arm/cortex-a9/bionic/memset.S \
+    arch-arm/cortex-a9/bionic/stpcpy.S \
+    arch-arm/cortex-a9/bionic/strcat.S \
+    arch-arm/cortex-a9/bionic/__strcat_chk.S \
+    arch-arm/cortex-a9/bionic/strcmp.S \
+    arch-arm/cortex-a9/bionic/strcpy.S \
+    arch-arm/cortex-a9/bionic/__strcpy_chk.S \
+    arch-arm/cortex-a9/bionic/strlen.S \
 
-include bionic/libc/arch-arm/generic/generic.mk
+libc_bionic_src_files_arm += \
+    arch-arm/generic/bionic/memcmp.S \
+
+libc_bionic_src_files_arm += \
+    arch-arm/denver/bionic/memmove.S \

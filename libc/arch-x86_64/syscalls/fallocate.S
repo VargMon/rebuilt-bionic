@@ -10,11 +10,9 @@ ENTRY(fallocate)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(fallocate)
 
-    .globl _C_LABEL(fallocate64)
-    .equ _C_LABEL(fallocate64), _C_LABEL(fallocate)
+ALIAS_SYMBOL(fallocate64, fallocate)

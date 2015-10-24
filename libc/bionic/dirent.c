@@ -30,7 +30,8 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <stdbool.h>
+#include <malloc.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -38,24 +39,32 @@
 #include "private/ErrnoRestorer.h"
 #include "private/ScopedPthreadMutexLocker.h"
 
-typedef struct dirent dirent;
-typedef struct DIR DIR;
+extern "C" int __getdents64(unsigned int, dirent*, unsigned int);
+
+// Apportable decided to copy the data structure from this file
+// and use it in their own code, but they also call into readdir.
+// In order to avoid a lockup, the structure must be maintained in
+// the exact same order as in L and below. New structure members
+// need to be added to the end of this structure.
+// See b/21037208 for more details.
 struct DIR {
   int fd_;
   size_t available_bytes_;
   dirent* next_;
   pthread_mutex_t mutex_;
   dirent buff_[15];
+  long current_pos_;
 };
 
 static DIR* __allocate_DIR(int fd) {
-  DIR* d = (DIR*)(malloc(sizeof(DIR)));
+  DIR* d = reinterpret_cast<DIR*>(malloc(sizeof(DIR)));
   if (d == NULL) {
     return NULL;
   }
   d->fd_ = fd;
   d->available_bytes_ = 0;
   d->next_ = NULL;
+  d->current_pos_ = 0L;
   pthread_mutex_init(&d->mutex_, NULL);
   return d;
 }
@@ -79,12 +88,12 @@ DIR* fdopendir(int fd) {
 }
 
 DIR* opendir(const char* path) {
-  int fd = open(path, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  int fd = open(path, O_CLOEXEC | O_DIRECTORY | O_RDONLY);
   return (fd != -1) ? __allocate_DIR(fd) : NULL;
 }
 
 static bool __fill_DIR(DIR* d) {
-  int rc = TEMP_FAILURE_RETRY(getdents(d->fd_, d->buff_, sizeof(d->buff_)));
+  int rc = TEMP_FAILURE_RETRY(__getdents64(d->fd_, d->buff_, sizeof(d->buff_)));
   if (rc <= 0) {
     return false;
   }
@@ -99,45 +108,40 @@ static dirent* __readdir_locked(DIR* d) {
   }
 
   dirent* entry = d->next_;
-  d->next_ = (dirent*)((char*)(entry) + entry->d_reclen);
+  d->next_ = reinterpret_cast<dirent*>(reinterpret_cast<char*>(entry) + entry->d_reclen);
   d->available_bytes_ -= entry->d_reclen;
+  // The directory entry offset uses 0, 1, 2 instead of real file offset,
+  // so the value range of long type is enough.
+  d->current_pos_ = static_cast<long>(entry->d_off);
   return entry;
 }
 
 dirent* readdir(DIR* d) {
-  ScopedPthreadMutexLocker locker;
-  ScopedPthreadMutexLocker_init(&locker, &d->mutex_);
-  dirent *ret = __readdir_locked(d);
-  ScopedPthreadMutexLocker_fini(&locker);
-  return ret;
+  ScopedPthreadMutexLocker locker(&d->mutex_);
+  return __readdir_locked(d);
 }
+__strong_alias(readdir64, readdir);
 
 int readdir_r(DIR* d, dirent* entry, dirent** result) {
   ErrnoRestorer errno_restorer;
-  ErrnoRestorer_init(&errno_restorer);
 
   *result = NULL;
   errno = 0;
 
-  ScopedPthreadMutexLocker locker;
-  ScopedPthreadMutexLocker_init(&locker, &d->mutex_);
+  ScopedPthreadMutexLocker locker(&d->mutex_);
 
   dirent* next = __readdir_locked(d);
   if (errno != 0 && next == NULL) {
-    int ret = errno;
-    ScopedPthreadMutexLocker_fini(&locker);
-    ErrnoRestorer_fini(&errno_restorer);
-    return ret;
+    return errno;
   }
 
   if (next != NULL) {
     memcpy(entry, next, next->d_reclen);
     *result = entry;
   }
-  ScopedPthreadMutexLocker_fini(&locker);
-  ErrnoRestorer_fini(&errno_restorer);
   return 0;
 }
+__strong_alias(readdir64_r, readdir_r);
 
 int closedir(DIR* d) {
   if (d == NULL) {
@@ -152,13 +156,26 @@ int closedir(DIR* d) {
 }
 
 void rewinddir(DIR* d) {
-  ScopedPthreadMutexLocker locker;
-  ScopedPthreadMutexLocker_init(&locker, &d->mutex_);
+  ScopedPthreadMutexLocker locker(&d->mutex_);
   lseek(d->fd_, 0, SEEK_SET);
   d->available_bytes_ = 0;
-  ScopedPthreadMutexLocker_fini(&locker);
+  d->current_pos_ = 0L;
+}
+
+void seekdir(DIR* d, long offset) {
+  ScopedPthreadMutexLocker locker(&d->mutex_);
+  off_t ret = lseek(d->fd_, offset, SEEK_SET);
+  if (ret != -1L) {
+    d->available_bytes_ = 0;
+    d->current_pos_ = ret;
+  }
+}
+
+long telldir(DIR* d) {
+  return d->current_pos_;
 }
 
 int alphasort(const dirent** a, const dirent** b) {
   return strcoll((*a)->d_name, (*b)->d_name);
 }
+__strong_alias(alphasort64, alphasort);

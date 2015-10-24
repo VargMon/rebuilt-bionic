@@ -29,28 +29,20 @@
 #include <errno.h>
 
 #include "private/ErrnoRestorer.h"
-#include "pthread_accessor.h"
+#include "pthread_internal.h"
 
-int pthread_getschedparam(pthread_t t, int* policy, struct sched_param* param) {
+int pthread_getschedparam(pthread_t t, int* policy, sched_param* param) {
   ErrnoRestorer errno_restorer;
-  ErrnoRestorer_init(&errno_restorer);
 
-  pthread_accessor thread;
-  pthread_accessor_init(&thread, t);
-  if (pthread_accessor_get(&thread) == NULL) {
-    pthread_accessor_fini(&thread);
-    ErrnoRestorer_fini(&errno_restorer);
+  pthread_internal_t* thread = __pthread_internal_find(t);
+  if (thread == NULL) {
     return ESRCH;
   }
 
-  int rc = sched_getparam(pthread_accessor_get(&thread)->tid, param);
+  int rc = sched_getparam(thread->tid, param);
   if (rc == -1) {
-    pthread_accessor_fini(&thread);
-    ErrnoRestorer_fini(&errno_restorer);
     return errno;
   }
-  *policy = sched_getscheduler(pthread_accessor_get(&thread)->tid);
-  pthread_accessor_fini(&thread);
-  ErrnoRestorer_fini(&errno_restorer);
+  *policy = sched_getscheduler(thread->tid);
   return 0;
 }

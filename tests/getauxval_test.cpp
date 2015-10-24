@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
+#include <errno.h>
 #include <sys/cdefs.h>
-#include <features.h>
 #include <gtest/gtest.h>
 
 // getauxval() was only added as of glibc version 2.16.
@@ -31,10 +31,11 @@
 #endif
 
 #if defined(GETAUXVAL_CAN_COMPILE)
-
 #include <sys/auxv.h>
+#endif
 
 TEST(getauxval, expected_values) {
+#if defined(GETAUXVAL_CAN_COMPILE)
   ASSERT_EQ((unsigned long int) 0, getauxval(AT_SECURE));
   ASSERT_EQ(getuid(), getauxval(AT_UID));
   ASSERT_EQ(geteuid(), getauxval(AT_EUID));
@@ -46,10 +47,17 @@ TEST(getauxval, expected_values) {
   ASSERT_NE((unsigned long int) 0, getauxval(AT_PHNUM));
   ASSERT_NE((unsigned long int) 0, getauxval(AT_ENTRY));
   ASSERT_NE((unsigned long int) 0, getauxval(AT_PAGESZ));
+#else
+  GTEST_LOG_(INFO) << "This test does nothing.\n";
+#endif
 }
 
 TEST(getauxval, unexpected_values) {
+#if defined(GETAUXVAL_CAN_COMPILE)
+  errno = 0;
   ASSERT_EQ((unsigned long int) 0, getauxval(0xdeadbeef));
+  ASSERT_EQ(ENOENT, errno);
+#else
+  GTEST_LOG_(INFO) << "This test does nothing.\n";
+#endif
 }
-
-#endif /* GETAUXVAL_CAN_COMPILE */

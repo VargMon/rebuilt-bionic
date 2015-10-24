@@ -9,9 +9,8 @@ ENTRY(getgid)
     jb      1f
     negl    %eax
     pushl   %eax
-    call    __set_errno
+    call    __set_errno_internal
     addl    $4, %esp
-    orl     $-1, %eax
 1:
     ret
 END(getgid)

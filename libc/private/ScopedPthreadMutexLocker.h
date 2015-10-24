@@ -19,21 +19,22 @@
 
 #include <pthread.h>
 
-typedef struct ScopedPthreadMutexLocker ScopedPthreadMutexLocker;
+#include "bionic_macros.h"
 
-struct ScopedPthreadMutexLocker {
+class ScopedPthreadMutexLocker {
+ public:
+  explicit ScopedPthreadMutexLocker(pthread_mutex_t* mu) : mu_(mu) {
+    pthread_mutex_lock(mu_);
+  }
+
+  ~ScopedPthreadMutexLocker() {
+    pthread_mutex_unlock(mu_);
+  }
+
+ private:
   pthread_mutex_t* mu_;
+
+  DISALLOW_COPY_AND_ASSIGN(ScopedPthreadMutexLocker);
 };
-
-static inline
-void ScopedPthreadMutexLocker_init(ScopedPthreadMutexLocker *smu, pthread_mutex_t* mu) {
-  smu->mu_ = mu;
-  pthread_mutex_lock(smu->mu_);
-}
-
-static inline
-void ScopedPthreadMutexLocker_fini(ScopedPthreadMutexLocker *smu) {
-  pthread_mutex_unlock(smu->mu_);
-}
 
 #endif // SCOPED_PTHREAD_MUTEX_LOCKER_H

@@ -46,7 +46,6 @@
 #include <sys/auxv.h>
 #include <sys/mman.h>
 
-#include "atexit.h"
 #include "libc_init_common.h"
 #include "pthread_internal.h"
 
@@ -60,6 +59,8 @@
 // itself at the start of a page.
 #define PAGE_END(x)    PAGE_START((x) + (PAGE_SIZE-1))
 
+extern "C" int __cxa_atexit(void (*)(void *), void *, void *);
+
 static void call_array(void(**list)()) {
   // First element is -1, list is null-terminated
   while (*++list) {
@@ -68,20 +69,19 @@ static void call_array(void(**list)()) {
 }
 
 static void apply_gnu_relro() {
-  Elf_Phdr* phdr_start = (Elf_Phdr*)(getauxval(AT_PHDR));
+  ElfW(Phdr)* phdr_start = reinterpret_cast<ElfW(Phdr)*>(getauxval(AT_PHDR));
   unsigned long int phdr_ct = getauxval(AT_PHNUM);
 
-  Elf_Phdr* phdr;
-  for (phdr = phdr_start; phdr < (phdr_start + phdr_ct); phdr++) {
+  for (ElfW(Phdr)* phdr = phdr_start; phdr < (phdr_start + phdr_ct); phdr++) {
     if (phdr->p_type != PT_GNU_RELRO) {
       continue;
     }
 
-    Elf_Addr seg_page_start = PAGE_START(phdr->p_vaddr);
-    Elf_Addr seg_page_end = PAGE_END(phdr->p_vaddr + phdr->p_memsz);
+    ElfW(Addr) seg_page_start = PAGE_START(phdr->p_vaddr);
+    ElfW(Addr) seg_page_end = PAGE_END(phdr->p_vaddr + phdr->p_memsz);
 
     // Check return value here? What do we do if we fail?
-    mprotect((void*)(seg_page_start), seg_page_end - seg_page_start, PROT_READ);
+    mprotect(reinterpret_cast<void*>(seg_page_start), seg_page_end - seg_page_start, PROT_READ);
   }
 }
 
@@ -89,10 +89,10 @@ __noreturn void __libc_init(void* raw_args,
                             void (*onexit)(void) __unused,
                             int (*slingshot)(int, char**, char**),
                             structors_array_t const * const structors) {
-  KernelArgumentBlock args;
-  KernelArgumentBlock_init(&args, raw_args);
-  __libc_init_tls(&args);
-  __libc_init_common(&args);
+  KernelArgumentBlock args(raw_args);
+  __libc_init_tls(args);
+  __libc_init_AT_SECURE(args);
+  __libc_init_common(args);
 
   apply_gnu_relro();
 

@@ -19,10 +19,10 @@
 #ifndef _UAPI__ASM_GENERIC_SIGNAL_H
 #define _UAPI__ASM_GENERIC_SIGNAL_H
 #include <linux/types.h>
-#define _NSIG 64
+#define _KERNEL__NSIG 64
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 #define _NSIG_BPW __BITS_PER_LONG
-#define _NSIG_WORDS (_NSIG / _NSIG_BPW)
+#define _NSIG_WORDS (_KERNEL__NSIG / _NSIG_BPW)
 #define SIGHUP 1
 #define SIGINT 2
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
@@ -66,9 +66,9 @@
 #define SIGSYS 31
 #define SIGUNUSED 31
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
-#define SIGRTMIN 32
-#ifndef SIGRTMAX
-#define SIGRTMAX _NSIG
+#define __SIGRTMIN 32
+#ifndef __SIGRTMAX
+#define __SIGRTMAX _KERNEL__NSIG
 #endif
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 #define SA_NOCLDSTOP 0x00000001
@@ -87,7 +87,7 @@
 #ifndef __ASSEMBLY__
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 typedef struct {
- unsigned long sig[_NSIG_WORDS];
+  unsigned long sig[_NSIG_WORDS];
 } sigset_t;
 typedef unsigned long old_sigset_t;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
@@ -97,19 +97,19 @@ typedef unsigned long old_sigset_t;
 #endif
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 struct sigaction {
- __sighandler_t sa_handler;
- unsigned long sa_flags;
+  __sighandler_t sa_handler;
+  unsigned long sa_flags;
 #ifdef SA_RESTORER
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
- __sigrestore_t sa_restorer;
+  __sigrestore_t sa_restorer;
 #endif
- sigset_t sa_mask;
+  sigset_t sa_mask;
 };
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 typedef struct sigaltstack {
- void __user *ss_sp;
- int ss_flags;
- size_t ss_size;
+  void __user * ss_sp;
+  int ss_flags;
+  size_t ss_size;
 /* WARNING: DO NOT EDIT, AUTO-GENERATED CODE - SEE TOP FOR INSTRUCTIONS */
 } stack_t;
 #endif

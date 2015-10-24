@@ -27,7 +27,7 @@
  */
 
 #include <machine/cpu-features.h>
-#include <machine/asm.h>
+#include <private/bionic_asm.h>
 
 #ifdef __ARMEB__
 #define S2LOMEM lsl
@@ -168,7 +168,6 @@ ENTRY(strcmp)
         bne     .L_do_align
 
         /* Fast path.  */
-        .save   {r4-r7}
         init
 
 .L_doubleword_aligned:

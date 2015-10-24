@@ -33,50 +33,63 @@
 #include <sys/types.h>
 #include <linux/fadvise.h>
 #include <linux/fcntl.h>
-#include <unistd.h>  /* this is not required, but makes client code much happier */
+#include <linux/stat.h>
+#include <linux/uio.h>
 
 __BEGIN_DECLS
 
-#ifndef O_ASYNC
-#define O_ASYNC  FASYNC
+#ifdef __LP64__
+/* LP64 kernels don't have F_*64 defines because their flock is 64-bit. */
+#define F_GETLK64  F_GETLK
+#define F_SETLK64  F_SETLK
+#define F_SETLKW64 F_SETLKW
 #endif
 
+#define O_ASYNC FASYNC
+#define O_RSYNC O_SYNC
+
+#define SPLICE_F_MOVE 1
+#define SPLICE_F_NONBLOCK 2
+#define SPLICE_F_MORE 4
+#define SPLICE_F_GIFT 8
+
+#define SYNC_FILE_RANGE_WAIT_BEFORE 1
+#define SYNC_FILE_RANGE_WRITE 2
+#define SYNC_FILE_RANGE_WAIT_AFTER 4
+
 extern int creat(const char*, mode_t);
-extern int fallocate64(int, int, off64_t, off64_t);
-extern int fallocate(int, int, off_t, off_t);
+extern int creat64(const char*, mode_t);
 extern int fcntl(int, int, ...);
 extern int openat(int, const char*, int, ...);
+extern int openat64(int, const char*, int, ...);
 extern int open(const char*, int, ...);
-extern int posix_fallocate64(int, off64_t, off64_t);
-extern int posix_fallocate(int, off_t, off_t);
+extern int open64(const char*, int, ...);
+extern ssize_t splice(int, off64_t*, int, off64_t*, size_t, unsigned int);
+extern ssize_t tee(int, int, size_t, unsigned int);
 extern int unlinkat(int, const char*, int);
+extern ssize_t vmsplice(int, const struct iovec*, size_t, unsigned int);
 
-extern int sync_file_range(int fd, off64_t offset, off64_t nbytes,
-                           unsigned int flags);
-extern int sync_file_range2(int fd, unsigned int flags,
-                            off64_t offset, off64_t nbytes);
-extern ssize_t splice (int fd_in, loff_t *off_in,
-                       int fd_out, loff_t *off_out,
-                       size_t len, unsigned int flags);
-extern ssize_t vmsplice(int fd, const struct iovec *iov,
-                        unsigned long nr_segs, unsigned int flags);
-extern ssize_t tee (int fdin, int fdout, size_t len,
-                    unsigned int flags);
-extern int name_to_handle_at (int dfd, const char *name,
-                              struct file_handle *handle, int *mnt_id,
-                              int flags);
-extern int open_by_handle_at (int mountdirfd, struct file_handle *handle,
-                              int flags);
-
-
-#if defined(__BIONIC_FORTIFY)
+#if defined(__USE_FILE_OFFSET64)
+extern int fallocate(int, int, off_t, off_t) __RENAME(fallocate64);
+extern int posix_fadvise(int, off_t, off_t, int) __RENAME(posix_fadvise64);
+extern int posix_fallocate(int, off_t, off_t) __RENAME(posix_fallocate);
+#else
+extern int fallocate(int, int, off_t, off_t);
+extern int posix_fadvise(int, off_t, off_t, int);
+extern int posix_fallocate(int, off_t, off_t);
+#endif
+extern int fallocate64(int, int, off64_t, off64_t);
+extern int posix_fadvise64(int, off64_t, off64_t, int);
+extern int posix_fallocate64(int, off64_t, off64_t);
 
 extern int __open_2(const char*, int);
-extern int __open_real(const char*, int, ...) __asm__(__USER_LABEL_PREFIX__ "open");
+extern int __open_real(const char*, int, ...) __RENAME(open);
 extern int __openat_2(int, const char*, int);
-extern int __openat_real(int, const char*, int, ...) __asm__(__USER_LABEL_PREFIX__ "openat");
+extern int __openat_real(int, const char*, int, ...) __RENAME(openat);
 __errordecl(__creat_missing_mode, "called with O_CREAT, but missing mode");
 __errordecl(__creat_too_many_args, "too many arguments");
+
+#if defined(__BIONIC_FORTIFY)
 
 #if !defined(__clang__)
 

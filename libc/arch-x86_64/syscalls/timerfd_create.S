@@ -9,8 +9,7 @@ ENTRY(timerfd_create)
     jb      1f
     negl    %eax
     movl    %eax, %edi
-    call    __set_errno
-    orq     $-1, %rax
+    call    __set_errno_internal
 1:
     ret
 END(timerfd_create)

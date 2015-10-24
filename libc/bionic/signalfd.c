@@ -30,10 +30,9 @@
 
 #include "private/kernel_sigset_t.h"
 
-int signalfd4(int fd, kernel_sigset_t* mask, size_t sizemask, int flags);
+extern "C" int __signalfd4(int fd, kernel_sigset_t* mask, size_t sizemask, int flags);
 
 int signalfd(int fd, const sigset_t* mask, int flags) {
-  kernel_sigset_t in_set;
-  kernel_sigset_t_init(&in_set, mask);
-  return signalfd4(fd, &in_set, sizeof(in_set), flags);
+  kernel_sigset_t in_set(mask);
+  return __signalfd4(fd, &in_set, sizeof(in_set), flags);
 }
