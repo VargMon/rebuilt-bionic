@@ -291,6 +291,7 @@ extern ssize_t recv(int, void*, size_t, int);
 __socketcall ssize_t sendto(int, const void*, size_t, int, const struct sockaddr*, socklen_t);
 __socketcall ssize_t recvfrom(int, void*, size_t, int, const struct sockaddr*, socklen_t*);
 
+#if defined(__BIONIC_FORTIFY)
 __errordecl(__recvfrom_error, "recvfrom called with size bigger than buffer");
 extern ssize_t __recvfrom_chk(int, void*, size_t, size_t, int, const struct sockaddr*, socklen_t*);
 extern ssize_t __recvfrom_real(int, void*, size_t, int, const struct sockaddr*, socklen_t*) __RENAME(recvfrom);

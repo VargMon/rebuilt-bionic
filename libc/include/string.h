@@ -41,6 +41,7 @@ __BEGIN_DECLS
 
 extern void*  memccpy(void* __restrict, const void* __restrict, int, size_t);
 extern void*  memchr(const void *, int, size_t) __purefunc;
+extern void*  rawmemchr(const void *s, int c) __purefunc;
 extern void*  memrchr(const void *, int, size_t) __purefunc;
 extern int    memcmp(const void *, const void *, size_t) __purefunc;
 extern void*  memcpy(void* __restrict, const void* __restrict, size_t);
@@ -50,9 +51,12 @@ extern void*  mempcpy(void* __restrict, const void* __restrict, size_t);
 extern void*  memmove(void *, const void *, size_t);
 extern void*  memset(void *, int, size_t);
 extern void*  memmem(const void *, size_t, const void *, size_t) __purefunc;
+extern void   memswap(void *, void *, size_t);
 
+extern char*  index(const char *, int) __purefunc;
 extern char*  strchr(const char *, int) __purefunc;
 extern char* __strchr_chk(const char *, int, size_t);
+extern char*  strchrnul(const char *, int) __purefunc;
 
 extern char*  strrchr(const char *, int) __purefunc;
 extern char* __strrchr_chk(const char *, int, size_t);
@@ -62,6 +66,7 @@ extern size_t __strlen_chk(const char *, size_t);
 extern int    strcmp(const char *, const char *) __purefunc;
 extern char*  stpcpy(char* __restrict, const char* __restrict);
 extern char*  strcpy(char* __restrict, const char* __restrict);
+extern char*  stpcpy(char* __restrict, const char* __restrict);
 extern char*  strcat(char* __restrict, const char* __restrict);
 
 int strcasecmp(const char*, const char*) __purefunc;
@@ -90,6 +95,7 @@ extern char*  strndup(const char *, size_t);
 extern int    strncmp(const char *, const char *, size_t) __purefunc;
 extern char*  stpncpy(char* __restrict, const char* __restrict, size_t);
 extern char*  strncpy(char* __restrict, const char* __restrict, size_t);
+extern char*  stpncpy(char* __restrict, const char* __restrict, size_t);
 
 extern size_t strlcat(char* __restrict, const char* __restrict, size_t);
 extern size_t strlcpy(char* __restrict, const char* __restrict, size_t);

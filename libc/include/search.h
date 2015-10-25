@@ -27,10 +27,17 @@ typedef struct node {
 } node_t;
 #endif
 
+struct qelem {
+	struct qelem *q_forw;
+	struct qelem *q_back;
+	char          q_data[1];
+};
+
+
 __BEGIN_DECLS
 
-void insque(void*, void*);
-void remque(void*);
+void insque(void *elem, void *prev);
+void remque(void *elem);
 
 void* lfind(const void*, const void*, size_t*, size_t, int (*)(const void*, const void*));
 void* lsearch(const void*, void*, size_t*, size_t, int (*)(const void*, const void*));

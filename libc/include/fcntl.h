@@ -35,6 +35,7 @@
 #include <linux/fcntl.h>
 #include <linux/stat.h>
 #include <linux/uio.h>
+#include <unistd.h>  /* this is not required, but makes client code much happier */
 
 __BEGIN_DECLS
 
@@ -69,6 +70,25 @@ extern ssize_t tee(int, int, size_t, unsigned int);
 extern int unlinkat(int, const char*, int);
 extern ssize_t vmsplice(int, const struct iovec*, size_t, unsigned int);
 
+extern int sync_file_range(int fd, off64_t offset, off64_t nbytes,
+                           unsigned int flags);
+extern int sync_file_range2(int fd, unsigned int flags,
+                            off64_t offset, off64_t nbytes);
+extern ssize_t splice (int fd_in, loff_t *off_in,
+                       int fd_out, loff_t *off_out,
+                       size_t len, unsigned int flags);
+extern ssize_t vmsplice(int fd, const struct iovec *iov,
+                        unsigned long nr_segs, unsigned int flags);
+extern ssize_t tee (int fdin, int fdout, size_t len,
+                    unsigned int flags);
+extern int name_to_handle_at (int dfd, const char *name,
+                              struct file_handle *handle, int *mnt_id,
+                              int flags);
+extern int open_by_handle_at (int mountdirfd, struct file_handle *handle,
+                              int flags);
+
+
+#if defined(__BIONIC_FORTIFY)
 #if defined(__USE_FILE_OFFSET64)
 extern int fallocate(int, int, off_t, off_t) __RENAME(fallocate64);
 extern int posix_fadvise(int, off_t, off_t, int) __RENAME(posix_fadvise64);

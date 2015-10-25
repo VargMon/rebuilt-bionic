@@ -28,6 +28,7 @@
 #ifndef _BIONIC_FUTEX_H
 #define _BIONIC_FUTEX_H
 
+#include <time.h>
 #include <errno.h>
 #include <linux/futex.h>
 #include <stdbool.h>

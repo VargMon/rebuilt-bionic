@@ -74,7 +74,7 @@ struct __sbuf {
 #else
 struct __sbuf {
 	unsigned char *_base;
-	int	_size;
+	size_t	_size;
 };
 #endif
 
@@ -238,6 +238,12 @@ ssize_t	 getdelim(char ** __restrict, size_t * __restrict, int,
 	    FILE * __restrict);
 ssize_t	 getline(char ** __restrict, size_t * __restrict, FILE * __restrict);
 
+#if __BSD_VISIBLE && !defined(__SYS_ERRLIST)
+#define __SYS_ERRLIST
+extern int sys_nerr;			/* perror(3) external variables */
+extern char *sys_errlist[];
+#endif
+
 void	 perror(const char *);
 int	 printf(const char * __restrict, ...)
 		__printflike(1, 2);
@@ -310,12 +316,26 @@ int	 vsscanf(const char * __restrict, const char * __restrict, __va_list)
 		__scanflike(2, 0);
 #endif /* __ISO_C_VISIBLE >= 1999 || __BSD_VISIBLE */
 
+static __inline char * tmpnam_r(char *s)
+{
+    return s ? tmpnam(s) : NULL;
+}
+
+__END_DECLS
+
+
 /*
  * Functions defined in POSIX 1003.1.
  */
 #if __BSD_VISIBLE || __POSIX_VISIBLE || __XPG_VISIBLE
 #define	L_ctermid	1024	/* size for ctermid(); PATH_MAX */
+#define L_cuserid	9	/* size for cuserid(); UT_NAMESIZE + 1 */
 
+__BEGIN_DECLS
+#if 0 /* MISSING FROM BIONIC */
+char	*ctermid(char *);
+char	*cuserid(char *);
+#endif /* MISSING */
 FILE	*fdopen(int, const char *);
 int	 fileno(FILE *);
 
@@ -334,9 +354,16 @@ void	 funlockfile(FILE *);
  * requires functions as well.
  */
 int	 getc_unlocked(FILE *);
+int	 fgetc_unlocked(FILE *);
 int	 getchar_unlocked(void);
 int	 putc_unlocked(int, FILE *);
 int	 putchar_unlocked(int);
+int	 fputs_unlocked(const char * __restrict, FILE * __restrict);
+char*	 fgets_unlocked(char *, int, FILE *);
+size_t	 fwrite_unlocked(const void * __restrict, size_t,
+                         size_t, FILE * __restrict);
+size_t	 fread_unlocked(void *, size_t, size_t, FILE *);
+int	 fflush_unlocked(FILE *);
 #endif /* __POSIX_VISIBLE >= 199506 */
 
 #if __POSIX_VISIBLE >= 200809
@@ -354,6 +381,8 @@ int	 asprintf(char ** __restrict, const char * __restrict, ...)
 		__printflike(2, 3);
 char	*fgetln(FILE * __restrict, size_t * __restrict);
 int	 fpurge(FILE *);
+int	 getw(FILE *);
+int	 putw(int, FILE *);
 void	 setbuffer(FILE *, char *, int);
 int	 setlinebuf(FILE *);
 int	 vasprintf(char ** __restrict, const char * __restrict,

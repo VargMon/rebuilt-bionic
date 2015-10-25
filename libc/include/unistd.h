@@ -39,6 +39,7 @@
 
 __BEGIN_DECLS
 
+/* Standard file descriptor numbers. */
 #define STDIN_FILENO	0
 #define STDOUT_FILENO	1
 #define STDERR_FILENO	2
@@ -97,6 +98,9 @@ extern int execl(const char *, const char *, ...);
 extern int execlp(const char *, const char *, ...);
 extern int execle(const char *, const char *, ...);
 
+/* IMPORTANT: See comment under <sys/prctl.h> about this declaration */
+extern int prctl(int  option, ...);
+
 extern int nice(int);
 
 extern int setuid(uid_t);
@@ -115,7 +119,11 @@ extern int setresuid(uid_t, uid_t, uid_t);
 extern int setresgid(gid_t, gid_t, gid_t);
 extern int getresuid(uid_t *ruid, uid_t *euid, uid_t *suid);
 extern int getresgid(gid_t *rgid, gid_t *egid, gid_t *sgid);
+extern int issetugid(void);
 extern char* getlogin(void);
+extern char* getusershell(void);
+extern void setusershell(void);
+extern void endusershell(void);
 
 extern long fpathconf(int, int);
 extern long pathconf(const char*, int);
@@ -142,20 +150,33 @@ extern int chown(const char *, uid_t, gid_t);
 extern int fchown(int, uid_t, gid_t);
 extern int fchownat(int, const char*, uid_t, gid_t, int);
 extern int lchown(const char *, uid_t, gid_t);
+extern int truncate(const char *, off_t);
+extern int truncate64(const char *, off64_t);
 extern char *getcwd(char *, size_t);
+extern char *get_current_dir_name(void);
 
 extern int sync(void);
+extern int syncfs(int);
 
 extern int close(int);
+extern off_t lseek(int, off_t, int);
+extern off64_t lseek64(int, off64_t, int);
 
 extern ssize_t read(int, void *, size_t);
 extern ssize_t write(int, const void *, size_t);
+extern ssize_t pread(int, void *, size_t, off_t);
+extern ssize_t pread64(int, void *, size_t, off64_t);
+extern ssize_t pwrite(int, const void *, size_t, off_t);
+extern ssize_t pwrite64(int, const void *, size_t, off64_t);
 
 extern int dup(int);
 extern int dup2(int, int);
+#ifdef _GNU_SOURCE
 extern int dup3(int, int, int);
+#endif
 extern int fcntl(int, int, ...);
 extern int ioctl(int, int, ...);
+extern int flock(int, int);
 extern int fsync(int);
 extern int fdatasync(int);
 
@@ -215,6 +236,38 @@ extern int cacheflush(long, long, long);
 
 extern pid_t tcgetpgrp(int fd);
 extern int   tcsetpgrp(int fd, pid_t _pid);
+
+extern int vhangup();
+extern int profil(unsigned short *buf, size_t bufsiz,
+                  size_t offset, unsigned int scale);
+
+extern char *crypt(const char *key, const char *salt);
+
+enum {
+  F_ULOCK = 0,
+#define F_ULOCK F_ULOCK
+  F_LOCK = 1,
+#define F_LOCK F_LOCK
+  F_TLOCK = 2,
+#define F_TLOCK F_TLOCK
+  F_TEST = 3
+#define F_TEST F_TEST
+};
+
+extern int lockf(int fd, int cmd, off_t len);
+
+extern char *getpass(const char *prompt);
+
+#if 0 /* MISSING FROM BIONIC */
+extern int execvpe(const char *, char * const *, char * const *);
+extern int execlpe(const char *, const char *, ...);
+extern int getfsuid(uid_t);
+extern int setfsuid(uid_t);
+extern int getlogin_r(char* name, size_t namesize);
+extern int sethostname(const char *, size_t);
+extern int getdomainname(char *, size_t);
+extern int setdomainname(const char *, size_t);
+#endif /* MISSING */
 
 /* Used to retry syscalls that can return EINTR. */
 #define TEMP_FAILURE_RETRY(exp) ({         \
