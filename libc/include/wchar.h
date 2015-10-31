@@ -25,6 +25,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
 #ifndef _WCHAR_H_
 #define _WCHAR_H_
 
@@ -34,6 +35,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <time.h>
+#include <wctype.h>
 #include <xlocale.h>
 
 #include <machine/wchar_limits.h>

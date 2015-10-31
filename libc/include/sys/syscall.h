@@ -33,5 +33,6 @@
 #include <sys/glibc-syscalls.h> /* glibc-compatible SYS_* aliases. */
 
 /* The syscall function itself is declared in <unistd.h>, not here. */
+#include <unistd.h> /* Actual syscall function */
 
 #endif /* _SYS_SYSCALL_H_ */

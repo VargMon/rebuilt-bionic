@@ -1,63 +1,42 @@
-/*	$NetBSD: strings.h,v 1.10 2005/02/03 04:39:32 perry Exp $	*/
+// directly from musl libc.. except for headers..
+#ifndef	_STRINGS_H
+#define	_STRINGS_H
 
-/*-
- * Copyright (c) 1998 The NetBSD Foundation, Inc.
- * All rights reserved.
- *
- * This code is derived from software contributed to The NetBSD Foundation
- * by Klaus Klein.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. All advertising materials mentioning features or use of this software
- *    must display the following acknowledgement:
- *        This product includes software developed by the NetBSD
- *        Foundation, Inc. and its contributors.
- * 4. Neither the name of The NetBSD Foundation nor the names of its
- *    contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
- * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION OR CONTRIBUTORS
- * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#ifndef _STRINGS_H_
-#define _STRINGS_H_
 
-#include <sys/types.h>
-#include <sys/cdefs.h>
+#define __NEED_size_t
+#define __NEED_locale_t
+#include <types.h>
+// for legacy
+#include <cdefs.h>
 
-__BEGIN_DECLS
-void	 bcopy(const void *, void *, size_t);
-void	 bzero(void *, size_t);
-int	 ffs(int);
-char	*index(const char *, int);
-char	*rindex(const char *, int);
-int	 strcasecmp(const char *, const char *);
-int	 strncasecmp(const char *, const char *, size_t);
+#if defined(_GNU_SOURCE) || defined(_BSD_SOURCE) || defined(_POSIX_SOURCE) \
+ || (defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE+0 < 200809L) \
+ || (defined(_XOPEN_SOURCE) && _XOPEN_SOURCE+0 < 700)
+int bcmp (const void *, const void *, size_t);
+void bcopy (const void *, void *, size_t);
+void bzero (void *, size_t);
+char *index (const char *, int);
+char *rindex (const char *, int);
+#endif
 
-#if defined(__BIONIC_FORTIFY)
-__BIONIC_FORTIFY_INLINE
-void bzero (void *s, size_t n) {
-    __builtin___memset_chk(s, '\0', n, __builtin_object_size (s, 0));
+#if defined(_XOPEN_SOURCE) || defined(_GNU_SOURCE)  || defined(_BSD_SOURCE)
+int ffs (int);
+int ffsl (long);
+int ffsll (long long);
+#endif
+
+int strcasecmp (const char *, const char *);
+int strncasecmp (const char *, const char *, size_t);
+
+int strcasecmp_l (const char *, const char *, locale_t);
+int strncasecmp_l (const char *, const char *, size_t, locale_t);
+
+#ifdef __cplusplus
 }
-#endif /* defined(__BIONIC_FORTIFY) */
+#endif
 
-__END_DECLS
-
-#endif /* !defined(_STRINGS_H_) */
+#endif

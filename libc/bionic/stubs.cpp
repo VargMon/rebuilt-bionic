@@ -124,16 +124,6 @@ static int do_getpw_r(int by_name, const char* name, uid_t uid,
   return 0;
 }
 
-int getpwnam_r(const char* name, passwd* pwd,
-               char* buf, size_t byte_count, passwd** result) {
-  return do_getpw_r(1, name, -1, pwd, buf, byte_count, result);
-}
-
-int getpwuid_r(uid_t uid, passwd* pwd,
-               char* buf, size_t byte_count, passwd** result) {
-  return do_getpw_r(0, NULL, uid, pwd, buf, byte_count, result);
-}
-
 static passwd* android_iinfo_to_passwd(passwd_state_t* state,
                                        const android_id_info* iinfo) {
   snprintf(state->name_buffer_, sizeof(state->name_buffer_), "%s", iinfo->name);
@@ -354,72 +344,6 @@ static group* app_id_to_group(gid_t gid, group_state_t* state) {
   gr->gr_gid    = gid;
   gr->gr_mem[0] = gr->gr_name;
   return gr;
-}
-
-passwd* getpwuid(uid_t uid) { // NOLINT: implementing bad function.
-  passwd_state_t* state = g_passwd_tls_buffer.get();
-  if (state == NULL) {
-    return NULL;
-  }
-
-  passwd* pw = android_id_to_passwd(state, uid);
-  if (pw != NULL) {
-    return pw;
-  }
-  return app_id_to_passwd(uid, state);
-}
-
-passwd* getpwnam(const char* login) { // NOLINT: implementing bad function.
-  passwd_state_t* state = g_passwd_tls_buffer.get();
-  if (state == NULL) {
-    return NULL;
-  }
-
-  passwd* pw = android_name_to_passwd(state, login);
-  if (pw != NULL) {
-    return pw;
-  }
-  return app_id_to_passwd(app_id_from_name(login, false), state);
-}
-
-// All users are in just one group, the one passed in.
-int getgrouplist(const char* /*user*/, gid_t group, gid_t* groups, int* ngroups) {
-  if (*ngroups < 1) {
-    *ngroups = 1;
-    return -1;
-  }
-  groups[0] = group;
-  return (*ngroups = 1);
-}
-
-char* getlogin() { // NOLINT: implementing bad function.
-  passwd *pw = getpwuid(getuid()); // NOLINT: implementing bad function in terms of bad function.
-  return (pw != NULL) ? pw->pw_name : NULL;
-}
-
-group* getgrgid(gid_t gid) { // NOLINT: implementing bad function.
-  group_state_t* state = __group_state();
-  if (state == NULL) {
-    return NULL;
-  }
-
-  group* gr = android_id_to_group(state, gid);
-  if (gr != NULL) {
-    return gr;
-  }
-  return app_id_to_group(gid, state);
-}
-
-group* getgrnam(const char* name) { // NOLINT: implementing bad function.
-  group_state_t* state = __group_state();
-  if (state == NULL) {
-    return NULL;
-  }
-
-  if (android_name_to_group(state, name) != 0) {
-    return &state->group_;
-  }
-  return app_id_to_group(app_id_from_name(name, true), state);
 }
 
 // We don't have an /etc/networks, so all inputs return NULL.
