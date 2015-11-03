@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2008 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,40 @@
  * SUCH DAMAGE.
  */
 
-// Indicate which memcpy base file to include.
-#define MEMCPY_BASE "memcpy_base.S"
+// Prototype: void *memcpy (void *dst, const void *src, size_t count).
 
-#include "__strcat_chk_common.S"
+#include <private/bionic_asm.h>
+#include <private/libc_events.h>
+
+ENTRY(__memcpy_chk)
+  cmp   x2, x3
+  b.hi  __memcpy_chk_fail
+
+  // Fall through to memcpy...
+  b memcpy
+END(__memcpy_chk)
+
+        .align  6
+ENTRY(memcpy)
+  #include "memcpy_base.S"
+END(memcpy)
+
+ENTRY_PRIVATE(__memcpy_chk_fail)
+  // Preserve for accurate backtrace.
+  stp  x29, x30, [sp, -16]!
+  .cfi_def_cfa_offset 16
+  .cfi_rel_offset x29, 0
+  .cfi_rel_offset x30, 8
+
+  adrp  x0, error_string
+  add   x0, x0, :lo12:error_string
+  ldr   x1, error_code
+  bl    __fortify_chk_fail
+error_code:
+  .word   BIONIC_EVENT_MEMCPY_BUFFER_OVERFLOW
+END(__memcpy_chk_fail)
+
+  .data
+  .align 2
+error_string:
+  .string "memcpy: prevented write past end of buffer"

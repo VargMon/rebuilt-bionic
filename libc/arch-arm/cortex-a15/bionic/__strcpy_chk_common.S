@@ -39,7 +39,7 @@
 ENTRY(__strcpy_chk)
     pld     [r0, #0]
     push    {r0, lr}
-    .cfi_adjust_cfa_offset 8
+    .cfi_def_cfa_offset 8
     .cfi_rel_offset r0, 0
     .cfi_rel_offset lr, 4
 
@@ -154,7 +154,7 @@ ENTRY(__strcpy_chk)
     // Add 1 for copy length to get the string terminator.
     add     r2, r3, #1
 
-#include "memcpy_base.S"
+#include MEMCPY_BASE
 
 .L_strcpy_chk_failed:
     ldr     r0, error_message

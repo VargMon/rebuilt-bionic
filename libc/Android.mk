@@ -610,6 +610,10 @@ ifneq ($(BOARD_MALLOC_ALIGNMENT),)
   libc_common_cflags += -DMALLOC_ALIGNMENT=$(BOARD_MALLOC_ALIGNMENT)
 endif
 
+ifeq ($(BOARD_USES_LEGACY_MMAP),true)
+  libc_common_cflags += -DLEGACY_MMAP
+endif
+
 # Define some common conlyflags
 libc_common_conlyflags := \
     -std=gnu99
@@ -1392,6 +1396,9 @@ LOCAL_SRC_FILES_arm += \
 
 LOCAL_ADDRESS_SANITIZER := false
 LOCAL_NATIVE_COVERAGE := $(bionic_coverage)
+
+# Allow devices to provide additional symbols
+LOCAL_WHOLE_STATIC_LIBRARIES += $(BOARD_PROVIDES_ADDITIONAL_BIONIC_STATIC_LIBS)
 
 include $(BUILD_SHARED_LIBRARY)
 

@@ -1,8 +1,17 @@
-$(call libc-add-cpu-variant-src,MEMCPY,arch-arm/krait/bionic/memcpy.S)
-$(call libc-add-cpu-variant-src,MEMSET,arch-arm/krait/bionic/memset.S)
-$(call libc-add-cpu-variant-src,STRCMP,arch-arm/krait/bionic/strcmp.S)
-$(call libc-add-cpu-variant-src,MEMMOVE,arch-arm/scorpion/bionic/memmove.S)
-# bcopy implemented in memmove.S
-$(call libc-add-cpu-variant-src,BCOPY,)
+# Use krait versions of memset/strcmp/memmove
+libc_bionic_src_files_arm += \
+    arch-arm/krait/bionic/memset.S \
+    arch-arm/krait/bionic/strcmp.S \
+    arch-arm/krait/bionic/memmove.S
 
-include bionic/libc/arch-arm/generic/generic.mk
+libc_bionic_src_files_arm += \
+    arch-arm/cortex-a15/bionic/memcpy.S \
+    arch-arm/cortex-a15/bionic/stpcpy.S \
+    arch-arm/cortex-a15/bionic/strcat.S \
+    arch-arm/cortex-a15/bionic/__strcat_chk.S \
+    arch-arm/cortex-a15/bionic/strcpy.S \
+    arch-arm/cortex-a15/bionic/__strcpy_chk.S \
+    arch-arm/cortex-a15/bionic/strlen.S
+
+libc_bionic_src_files_arm += \
+    arch-arm/generic/bionic/memcmp.S

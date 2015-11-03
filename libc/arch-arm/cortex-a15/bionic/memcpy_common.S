@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 The Android Open Source Project
+ * Copyright (C) 2008 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,112 +54,50 @@
  */
 
 #include <private/bionic_asm.h>
+#include <private/libc_events.h>
 
-    .syntax unified
+        .text
+        .syntax unified
+        .fpu    neon
 
-    .thumb
-    .thumb_func
+ENTRY(__memcpy_chk)
+        cmp     r2, r3
+        bhi     .L_memcpy_chk_fail
 
-ENTRY(strlen)
-    pld     [r0, #0]
-    mov     r1, r0
+        // Fall through to memcpy...
+END(__memcpy_chk)
 
-    ands    r3, r0, #7
-    beq     .L_mainloop
+// Prototype: void *memcpy (void *dst, const void *src, size_t count).
+ENTRY(memcpy)
+        pld     [r1, #64]
+        push    {r0, lr}
+        .cfi_def_cfa_offset 8
+        .cfi_rel_offset r0, 0
+        .cfi_rel_offset lr, 4
 
-    // Align to a double word (64 bits).
-    rsb     r3, r3, #8
-    lsls    ip, r3, #31
-    beq     .L_align_to_32
+#include MEMCPY_BASE
 
-    ldrb    r2, [r1], #1
-    cbz     r2, .L_update_count_and_return
+        // Undo the cfi instructions from above.
+        .cfi_def_cfa_offset 0
+        .cfi_restore r0
+        .cfi_restore lr
+.L_memcpy_chk_fail:
+        // Preserve lr for backtrace.
+        push    {lr}
+        .cfi_adjust_cfa_offset 4
+        .cfi_rel_offset lr, 0
 
-.L_align_to_32:
-    bcc     .L_align_to_64
-    ands    ip, r3, #2
-    beq     .L_align_to_64
+        ldr     r0, error_message
+        ldr     r1, error_code
+1:
+        add     r0, pc
+        bl      __fortify_chk_fail
+error_code:
+        .word   BIONIC_EVENT_MEMCPY_BUFFER_OVERFLOW
+error_message:
+        .word   error_string-(1b+8)
+END(memcpy)
 
-    ldrb    r2, [r1], #1
-    cbz     r2, .L_update_count_and_return
-    ldrb    r2, [r1], #1
-    cbz     r2, .L_update_count_and_return
-
-.L_align_to_64:
-    tst     r3, #4
-    beq     .L_mainloop
-    ldr     r3, [r1], #4
-
-    sub     ip, r3, #0x01010101
-    bic     ip, ip, r3
-    ands    ip, ip, #0x80808080
-    bne     .L_zero_in_second_register
-
-    .p2align 2
-.L_mainloop:
-    ldrd    r2, r3, [r1], #8
-
-    pld     [r1, #64]
-
-    sub     ip, r2, #0x01010101
-    bic     ip, ip, r2
-    ands    ip, ip, #0x80808080
-    bne     .L_zero_in_first_register
-
-    sub     ip, r3, #0x01010101
-    bic     ip, ip, r3
-    ands    ip, ip, #0x80808080
-    bne     .L_zero_in_second_register
-    b       .L_mainloop
-
-.L_update_count_and_return:
-    sub     r0, r1, r0
-    sub     r0, r0, #1
-    bx      lr
-
-.L_zero_in_first_register:
-    sub     r0, r1, r0
-    lsls    r3, ip, #17
-    bne     .L_sub8_and_return
-    bcs     .L_sub7_and_return
-    lsls    ip, ip, #1
-    bne     .L_sub6_and_return
-
-    sub     r0, r0, #5
-    bx      lr
-
-.L_sub8_and_return:
-    sub     r0, r0, #8
-    bx      lr
-
-.L_sub7_and_return:
-    sub     r0, r0, #7
-    bx      lr
-
-.L_sub6_and_return:
-    sub     r0, r0, #6
-    bx      lr
-
-.L_zero_in_second_register:
-    sub     r0, r1, r0
-    lsls    r3, ip, #17
-    bne     .L_sub4_and_return
-    bcs     .L_sub3_and_return
-    lsls    ip, ip, #1
-    bne     .L_sub2_and_return
-
-    sub     r0, r0, #1
-    bx      lr
-
-.L_sub4_and_return:
-    sub     r0, r0, #4
-    bx      lr
-
-.L_sub3_and_return:
-    sub     r0, r0, #3
-    bx      lr
-
-.L_sub2_and_return:
-    sub     r0, r0, #2
-    bx      lr
-END(strlen)
+        .data
+error_string:
+        .string "memcpy: prevented write past end of buffer"
