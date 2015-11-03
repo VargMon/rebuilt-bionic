@@ -408,7 +408,7 @@ static void malloc_init_impl(libc_globals* globals) {
 
   // mksh is way too leaky. http://b/7291287.
   if (g_malloc_debug_level >= 10) {
-    if (strcmp(getprogname(), "sh") == 0 || strcmp(getprogname(), "/system/bin/sh") == 0) {
+    if (strcmp(getprogname(), "sh") == 0 || strcmp(getprogname(), "/bin/sh") == 0) {
       return;
     }
   }

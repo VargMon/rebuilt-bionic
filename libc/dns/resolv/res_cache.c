@@ -37,7 +37,9 @@
 
 #include <errno.h>
 #include <arpa/nameser.h>
+#ifdef ANDROID_PROPERTY_SUPPORT
 #include <sys/system_properties.h>
+#endif
 #include <net/if.h>
 #include <netdb.h>
 #include <linux/if.h>

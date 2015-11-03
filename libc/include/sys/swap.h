@@ -30,6 +30,7 @@
 #define _SYS_SWAP_H_
 
 #include <sys/cdefs.h>
+#include <linux/swap.h>
 
 __BEGIN_DECLS
 

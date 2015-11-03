@@ -36,6 +36,9 @@
 #include <malloc.h>
 #include <stddef.h>
 
+/* For GCC, trow in PAGE_SIZE define. */
+#include <asm/page.h>
+
 __BEGIN_DECLS
 
 #define EXIT_FAILURE 1
@@ -160,7 +163,7 @@ extern lldiv_t   lldiv(long long, long long) __pure2;
 extern const char* getprogname(void);
 extern void setprogname(const char*);
 
-/* make STLPort happy */
+/* Make STLPort happy. */
 extern int      mblen(const char *, size_t);
 extern size_t   mbstowcs(wchar_t *, const char *, size_t);
 extern int      mbtowc(wchar_t *, const char *, size_t);

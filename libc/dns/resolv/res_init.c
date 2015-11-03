@@ -98,19 +98,16 @@ __RCSID("$NetBSD: res_init.c,v 1.8 2006/03/19 03:10:08 christos Exp $");
 #include <unistd.h>
 #include <netdb.h>
 
-#ifdef ANDROID_CHANGES
-#include <errno.h>
-#include <fcntl.h>
+#include <errno.h> // XXX: ANDROID_CHANGES
+#include <fcntl.h> // XXX: ANDROID_CHANGES
+#ifdef USE_ANDROID_PRPERTIES
 #include <sys/system_properties.h>
-#endif /* ANDROID_CHANGES */
+#endif
 
 /* ensure that sockaddr_in6 and IN6ADDR_ANY_INIT are declared / defined */
-#ifdef ANDROID_CHANGES
-#include "resolv_netid.h"
-#include "resolv_private.h"
-#else
+#include "resolv_netid.h" // XXX: ANDROID_CHANGES
+#include "resolv_private.h" // XXX: ANDROID_CHANGES
 #include <resolv.h>
-#endif
 
 #include "res_private.h"
 
@@ -119,7 +116,7 @@ __RCSID("$NetBSD: res_init.c,v 1.8 2006/03/19 03:10:08 christos Exp $");
 #define DEBUG
 #endif
 
-static void res_setoptions __P((res_state, const char *, const char *));
+static void res_setoptions (res_state, const char *, const char *);
 
 #ifdef RESOLVSORT
 static const char sort_mask[] = "/&";
@@ -243,7 +240,7 @@ __res_vinit(res_state statp, int preinit) {
 	statp->nsort = 0;
 	res_setservers(statp, u, nserv);
 
-#if !defined(__ANDROID__) /* IGNORE THE ENVIRONMENT */
+#if defined(__RES_INIT_USE_ENVIRONMENT__)
 	/* Allow user to override the local domain definition */
 	if ((cp = getenv("LOCALDOMAIN")) != NULL) {
 		(void)strncpy(statp->defdname, cp, sizeof(statp->defdname) - 1);
@@ -282,7 +279,8 @@ __res_vinit(res_state statp, int preinit) {
 		statp->nscount = nserv;
 #endif
 
-#ifndef ANDROID_CHANGES /* !ANDROID_CHANGES - IGNORE resolv.conf in Android */
+/* resolv.conf support */
+#ifdef __USE_RES_CONF__ 
 #define	MATCH(line, name) \
 	(!strncmp(line, name, sizeof(name) - 1) && \
 	(line[sizeof(name) - 1] == ' ' || \
@@ -435,7 +433,7 @@ __res_vinit(res_state statp, int preinit) {
 	    statp->nsort = nsort;
 	    (void) fclose(fp);
 	}
-#endif /* !ANDROID_CHANGES */
+#endif /* resolv.conf support */
 /*
  * Last chance to get a nameserver.  This should not normally
  * be necessary

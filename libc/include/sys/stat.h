@@ -36,6 +36,16 @@
 
 __BEGIN_DECLS
 
+#ifndef S_BLKSIZE
+#define S_BLKSIZE 512
+#endif
+
+/* POSIX.1b objects.  Note that these macros always evaluate to zero.  But
+   they do it by enforcing the correct use of the macros.  */
+#define S_TYPEISMQ(buf)  ((buf)->st_mode - (buf)->st_mode)
+#define S_TYPEISSEM(buf) ((buf)->st_mode - (buf)->st_mode)
+#define S_TYPEISSHM(buf) ((buf)->st_mode - (buf)->st_mode)
+
 #if defined(__aarch64__) || (defined(__mips__) && defined(__LP64__))
 #define __STAT64_BODY \
   dev_t st_dev; \

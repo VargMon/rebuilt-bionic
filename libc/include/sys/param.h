@@ -34,6 +34,12 @@
 #define MAXPATHLEN  PATH_MAX
 #define MAXSYMLINKS 8
 
+#define NBBY 8
+#define	setbit(a,i) ((a)[(i)/NBBY] |= 1<<((i)%NBBY))
+#define	clrbit(a,i) ((a)[(i)/NBBY] &= ~(1<<((i)%NBBY)))
+#define	isset(a,i) ((a)[(i)/NBBY] & (1<<((i)%NBBY)))
+#define	isclr(a,i) (((a)[(i)/NBBY] & (1<<((i)%NBBY))) == 0)
+
 /* Macros for counting and rounding. */
 #ifndef howmany
 #define howmany(x, y)   (((x)+((y)-1))/(y))

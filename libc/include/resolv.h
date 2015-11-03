@@ -86,8 +86,8 @@ typedef res_sendhookact (*res_send_rhook)(const struct sockaddr *,
 struct res_state;
 
 
-extern struct __res_state *__res_state(void);
-#define _res (*__res_state())
+extern struct __res_state *__res_get_state(void);
+#define _res (*__res_get_state())
 
 #define b64_ntop __b64_ntop
 #define b64_pton __b64_pton

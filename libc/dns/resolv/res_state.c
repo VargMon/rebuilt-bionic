@@ -36,8 +36,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef USE_ANDROID_PRPERTIES
 #define _REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_
 #include <sys/_system_properties.h>
+#endif
 
 /* Set to 1 to enable debug traces */
 #ifndef DEBUG
@@ -57,7 +59,9 @@ typedef struct {
     // TODO: Have one __res_state per network so we don't have to repopulate frequently.
     struct __res_state  _nres[1];
     unsigned             _serial;
+#ifdef USE_ANDROID_PRPERTIES
     struct prop_info*   _pi;
+#endif
     struct res_static   _rstatic[1];
 } _res_thread;
 
@@ -70,7 +74,7 @@ _res_thread_alloc(void)
         rt->_h_errno = 0;
         /* Special system property which tracks any changes to 'net.*'. */
         rt->_serial = 0;
-#if defined(PROPERTY_SYSTEM_SUPPORT)
+#if defined(USE_ANDROID_PRPERTIES)
         rt->_pi = (struct prop_info*) __system_property_find("net.change");
         if (rt->_pi) {
             rt->_serial = __system_property_serial(rt->_pi);
@@ -129,7 +133,7 @@ _res_thread_get(void)
              * called the last time. This should only happen very
              * early during the boot sequence. First, let's try to see if it
              * is here now. */
-#if defined(PROPERTY_SYSTEM_SUPPORT)
+#if defined(USE_ANDROID_PRPERTIES)
             rt->_pi = (struct prop_info*) __system_property_find("net.change");
 #endif
             if (rt->_pi == NULL) {
@@ -139,7 +143,7 @@ _res_thread_get(void)
                 return rt;
             }
         }
-#if defined(PROPERTY_SYSTEM_SUPPORT)
+#if defined(USE_ANDROID_PRPERTIES)
         if (rt->_serial == __system_property_serial(rt->_pi)) {
             /* Nothing changed, so return the current state */
             D("%s: tid=%d rt=%p nothing changed, returning",

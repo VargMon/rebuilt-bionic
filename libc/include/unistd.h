@@ -271,16 +271,14 @@ extern int lockf(int fd, int cmd, off_t len);
 
 extern char *getpass(const char *prompt);
 
-#if 0 /* MISSING FROM BIONIC */
-extern int execvpe(const char *, char * const *, char * const *);
+/* MISSING FROM BIONIC */
 extern int execlpe(const char *, const char *, ...);
 extern int getfsuid(uid_t);
 extern int setfsuid(uid_t);
 extern int getlogin_r(char* name, size_t namesize);
-extern int sethostname(const char *, size_t);
 extern int getdomainname(char *, size_t);
 extern int setdomainname(const char *, size_t);
-#endif /* MISSING */
+/* MISSING */
 
 /* Used to retry syscalls that can return EINTR. */
 #define TEMP_FAILURE_RETRY(exp) ({         \

@@ -69,6 +69,7 @@ extern ssize_t splice(int, off64_t*, int, off64_t*, size_t, unsigned int);
 extern ssize_t tee(int, int, size_t, unsigned int);
 extern int unlinkat(int, const char*, int);
 extern ssize_t vmsplice(int, const struct iovec*, size_t, unsigned int);
+extern ssize_t readahead(int fd, off64_t offset, size_t count);
 
 extern int sync_file_range(int fd, off64_t offset, off64_t nbytes,
                            unsigned int flags);

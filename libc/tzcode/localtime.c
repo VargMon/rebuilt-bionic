@@ -1308,8 +1308,10 @@ tzsetwall(void)
 #endif
 
 #if defined(__ANDROID__)
+#ifdef USE_ANDROID_PRPERTIES
 #define _REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_
 #include <sys/_system_properties.h> // For __system_property_serial.
+#endif
 #endif
 
 static void
@@ -1318,6 +1320,7 @@ tzset_unlocked(void)
 #if defined(__ANDROID__)
   const char * name = getenv("TZ");
 
+#ifdef USE_ANDROID_PRPERTIES
   // Try the "persist.sys.timezone" system property.
   if (name == NULL) {
     static const prop_info *pi;
@@ -1343,6 +1346,7 @@ tzset_unlocked(void)
   tzsetlcl(name);
 #else
   tzsetlcl(getenv("TZ"));
+#endif
 #endif
 }
 

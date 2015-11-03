@@ -104,6 +104,11 @@ void endutent(void);
 
 int login_tty(int fd);
 
+void pututline(struct utmp* utmp);
+struct utmp *getutid(struct utmp *ut);
+struct utmp *getutline(struct utmp *ut);
+
+
 __END_DECLS
 
 #endif /* _UTMP_H_ */

@@ -32,6 +32,9 @@
 #include <sys/cdefs.h>
 #include <stddef.h> /* For size_t. */
 
+#include <asm/page.h> /* Might be a bad idea.. */
+#include <asm/user.h> /* ??? unsure about this one too. */
+
 __BEGIN_DECLS
 
 #define PAGE_SIZE 4096

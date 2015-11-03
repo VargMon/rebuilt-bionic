@@ -101,12 +101,9 @@ __RCSID("$NetBSD: res_send.c,v 1.9 2006/01/24 17:41:25 christos Exp $");
 #include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
-#ifdef ANDROID_CHANGES
-#include "resolv_netid.h"
-#include "resolv_private.h"
-#else
+#include "resolv_netid.h" // XXX: ANDROID_CHANGES
+#include "resolv_private.h" // XXX: ANDROID_CHANGES
 #include <resolv.h>
-#endif
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>

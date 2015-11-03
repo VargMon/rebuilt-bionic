@@ -35,6 +35,13 @@
 
 __BEGIN_DECLS
 
+/*
+ * Ethernet Address Resolution Protocol.
+ *
+ * See RFC 826 for protocol description.  Structure below is adapted
+ * to resolving internet addresses.  Field names used correspond to
+ * RFC 826.
+ */
 struct ether_arp {
   struct arphdr ea_hdr;
   u_int8_t arp_sha[ETH_ALEN];

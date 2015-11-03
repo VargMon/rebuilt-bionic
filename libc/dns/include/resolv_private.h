@@ -56,9 +56,11 @@
 
 #include <sys/cdefs.h>
 
+#include <netinet/in.h>
 #include <resolv.h>
 #include "resolv_static.h"
 #include <net/if.h>
+#include "arpa_nameser.h"
 
 /* Despite this file's name, it's part of libresolv. On Android, that means it's part of libc :-( */
 #pragma GCC visibility push(default)
@@ -298,8 +300,8 @@ __LIBC_HIDDEN__ extern void __res_put_state(struct __res_state *);
  * Source and Binary compatibility; _res will not work properly
  * with multi-threaded programs.
  */
-extern struct __res_state *__res_state(void);
-#define _res (*__res_state())
+extern struct __res_state *__res_get_state(void);
+#define _res (*__res_get_state())
 #endif
 
 __END_DECLS
