@@ -87,6 +87,7 @@ void __init_alternate_signal_stack(pthread_internal_t* thread) {
     // We can only use const static allocated string for mapped region name, as Android kernel
     // uses the string pointer directly when dumping /proc/pid/maps.
     prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, ss.ss_sp, ss.ss_size, "thread signal stack");
+    prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, stack_base, PAGE_SIZE, "thread signal stack guard page");
   }
 }
 
@@ -140,6 +141,7 @@ static void* __create_thread_mapped_space(size_t mmap_size, size_t stack_guard_s
     munmap(space, mmap_size);
     return NULL;
   }
+  prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, space, stack_guard_size, "thread stack guard page");
 
   return space;
 }
@@ -191,8 +193,7 @@ static int __pthread_start(void* arg) {
   // notify gdb about this thread before we start doing anything.
   // This also provides the memory barrier needed to ensure that all memory
   // accesses previously made by the creating thread are visible to us.
-  pthread_mutex_lock(&thread->startup_handshake_mutex);
-  pthread_mutex_destroy(&thread->startup_handshake_mutex);
+  thread->startup_handshake_lock.lock();
 
   __init_alternate_signal_stack(thread);
 
@@ -231,14 +232,14 @@ int pthread_create(pthread_t* thread_out, pthread_attr_t const* attr,
     return result;
   }
 
-  // Create a mutex for the thread in TLS to wait on once it starts so we can keep
+  // Create a lock for the thread to wait on once it starts so we can keep
   // it from doing anything until after we notify the debugger about it
   //
   // This also provides the memory barrier we need to ensure that all
   // memory accesses previously performed by this thread are visible to
   // the new thread.
-  pthread_mutex_init(&thread->startup_handshake_mutex, NULL);
-  pthread_mutex_lock(&thread->startup_handshake_mutex);
+  thread->startup_handshake_lock.init(false);
+  thread->startup_handshake_lock.lock();
 
   thread->start_routine = start_routine;
   thread->start_routine_arg = arg;
@@ -261,7 +262,7 @@ int pthread_create(pthread_t* thread_out, pthread_attr_t const* attr,
     // We don't have to unlock the mutex at all because clone(2) failed so there's no child waiting to
     // be unblocked, but we're about to unmap the memory the mutex is stored in, so this serves as a
     // reminder that you can't rewrite this function to use a ScopedPthreadMutexLocker.
-    pthread_mutex_unlock(&thread->startup_handshake_mutex);
+    thread->startup_handshake_lock.unlock();
     if (thread->mmap_size != 0) {
       munmap(thread->attr.stack_base, thread->mmap_size);
     }
@@ -276,13 +277,13 @@ int pthread_create(pthread_t* thread_out, pthread_attr_t const* attr,
     atomic_store(&thread->join_state, THREAD_DETACHED);
     __pthread_internal_add(thread);
     thread->start_routine = __do_nothing;
-    pthread_mutex_unlock(&thread->startup_handshake_mutex);
+    thread->startup_handshake_lock.unlock();
     return init_errno;
   }
 
   // Publish the pthread_t and unlock the mutex to let the new thread start running.
   *thread_out = __pthread_internal_add(thread);
-  pthread_mutex_unlock(&thread->startup_handshake_mutex);
+  thread->startup_handshake_lock.unlock();
 
   return 0;
 }

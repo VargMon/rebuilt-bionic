@@ -223,7 +223,7 @@ TEST(time, timer_create_SIGEV_SIGNAL) {
   ts.it_value.tv_nsec = 1;
   ts.it_interval.tv_sec = 0;
   ts.it_interval.tv_nsec = 0;
-  ASSERT_EQ(0, timer_settime(timer_id, TIMER_ABSTIME, &ts, NULL));
+  ASSERT_EQ(0, timer_settime(timer_id, 0, &ts, NULL));
 
   usleep(500000);
   ASSERT_EQ(1, timer_create_SIGEV_SIGNAL_signal_handler_invocation_count);

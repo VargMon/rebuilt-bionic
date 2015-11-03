@@ -29,13 +29,14 @@
 #ifndef _LINKER_H_
 #define _LINKER_H_
 
+#include <android/dlext.h>
 #include <elf.h>
 #include <inttypes.h>
 #include <link.h>
-#include <unistd.h>
-#include <android/dlext.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
+#include "private/bionic_page.h"
 #include "private/libc_logging.h"
 #include "linked_list.h"
 
@@ -77,16 +78,6 @@
 #define ELF64_R_TYPE(info)  (((info) >> 56) & 0xff)
 #endif
 
-// Returns the address of the page containing address 'x'.
-#define PAGE_START(x)  ((x) & PAGE_MASK)
-
-// Returns the offset of address 'x' in its page.
-#define PAGE_OFFSET(x) ((x) & ~PAGE_MASK)
-
-// Returns the address of the next page after address 'x', unless 'x' is
-// itself at the start of a page.
-#define PAGE_END(x)    PAGE_START((x) + (PAGE_SIZE-1))
-
 #define FLAG_LINKED     0x00000001
 #define FLAG_EXE        0x00000004 // The main executable
 #define FLAG_LINKER     0x00000010 // The linker itself
@@ -97,7 +88,7 @@
 
 #define SOINFO_VERSION 2
 
-#if defined(__work_around_b_19059885__)
+#if defined(__work_around_b_24465209__)
 #define SOINFO_NAME_LEN 128
 #endif
 
@@ -172,7 +163,7 @@ class VersionTracker {
 struct soinfo {
  public:
   typedef LinkedList<soinfo, SoinfoListAllocator> soinfo_list_t;
-#if defined(__work_around_b_19059885__)
+#if defined(__work_around_b_24465209__)
  private:
   char old_name_[SOINFO_NAME_LEN];
 #endif
@@ -183,13 +174,13 @@ struct soinfo {
   ElfW(Addr) base;
   size_t size;
 
-#if defined(__work_around_b_19059885__)
+#if defined(__work_around_b_24465209__)
   uint32_t unused1;  // DO NOT USE, maintained for compatibility.
 #endif
 
   ElfW(Dyn)* dynamic;
 
-#if defined(__work_around_b_19059885__)
+#if defined(__work_around_b_24465209__)
   uint32_t unused2; // DO NOT USE, maintained for compatibility
   uint32_t unused3; // DO NOT USE, maintained for compatibility
 #endif
@@ -250,7 +241,9 @@ struct soinfo {
   bool mips_relocate_got(const VersionTracker& version_tracker,
                          const soinfo_list_t& global_group,
                          const soinfo_list_t& local_group);
-
+#if !defined(__LP64__)
+  bool mips_check_and_adjust_fp_modes();
+#endif
 #endif
   size_t ref_count_;
  public:
@@ -305,7 +298,7 @@ struct soinfo {
   bool is_gnu_hash() const;
 
   bool inline has_min_version(uint32_t min_version __unused) const {
-#if defined(__work_around_b_19059885__)
+#if defined(__work_around_b_24465209__)
     return (flags_ & FLAG_NEW_SOINFO) != 0 && version_ >= min_version;
 #else
     return true;
@@ -324,6 +317,7 @@ struct soinfo {
 
   soinfo* get_local_group_root() const;
 
+  void set_soname(const char* soname);
   const char* get_soname() const;
   const char* get_realpath() const;
   const ElfW(Versym)* get_versym(size_t n) const;
@@ -335,6 +329,9 @@ struct soinfo {
   bool find_verdef_version_index(const version_info* vi, ElfW(Versym)* versym) const;
 
   uint32_t get_target_sdk_version() const;
+
+  void set_dt_runpath(const char *);
+  const std::vector<std::string>& get_dt_runpath() const;
 
  private:
   bool elf_lookup(SymbolName& symbol_name, const version_info* vi, uint32_t* symbol_index) const;
@@ -397,6 +394,8 @@ struct soinfo {
 
   uint32_t target_sdk_version_;
 
+  std::vector<std::string> dt_runpath_;
+
   friend soinfo* get_libdl_info();
 };
 
@@ -418,7 +417,7 @@ soinfo* get_libdl_info();
 
 void do_android_get_LD_LIBRARY_PATH(char*, size_t);
 void do_android_update_LD_LIBRARY_PATH(const char* ld_library_path);
-soinfo* do_dlopen(const char* name, int flags, const android_dlextinfo* extinfo);
+soinfo* do_dlopen(const char* name, int flags, const android_dlextinfo* extinfo, soinfo *caller);
 void do_dlclose(soinfo* si);
 
 int do_dl_iterate_phdr(int (*cb)(dl_phdr_info* info, size_t size, void* data), void* data);

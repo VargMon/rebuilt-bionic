@@ -3,8 +3,9 @@ LOCAL_PATH:= $(call my-dir)
 
 bionic_coverage := false
 
-ifneq (,$(filter $(TARGET_ARCH),x86 x86_64))
-# Clang has wrong long double sizes for x86.
+# Clang/llvm has incompatible long double (fp128) for x86_64.
+# https://llvm.org/bugs/show_bug.cgi?id=23897
+ifeq ($(TARGET_ARCH),x86_64)
 libm_clang := false
 endif
 
@@ -107,8 +108,6 @@ LOCAL_SRC_FILES := \
     upstream-freebsd/lib/msun/src/s_exp2.c \
     upstream-freebsd/lib/msun/src/s_exp2f.c \
     upstream-freebsd/lib/msun/src/s_expm1f.c \
-    upstream-freebsd/lib/msun/src/s_fabs.c \
-    upstream-freebsd/lib/msun/src/s_fabsf.c \
     upstream-freebsd/lib/msun/src/s_fdim.c \
     upstream-freebsd/lib/msun/src/s_finite.c \
     upstream-freebsd/lib/msun/src/s_finitef.c \
@@ -174,7 +173,6 @@ LOCAL_SRC_FILES_64 := \
     upstream-freebsd/lib/msun/src/s_copysignl.c \
     upstream-freebsd/lib/msun/src/e_coshl.c \
     upstream-freebsd/lib/msun/src/s_cosl.c \
-    upstream-freebsd/lib/msun/src/s_fabsl.c \
     upstream-freebsd/lib/msun/src/s_floorl.c \
     upstream-freebsd/lib/msun/src/s_fmal.c \
     upstream-freebsd/lib/msun/src/s_fmaxl.c \
@@ -226,6 +224,10 @@ LOCAL_SRC_FILES += \
 # Modified versions of BSD code.
 LOCAL_SRC_FILES += \
     signbit.c \
+
+# Home-grown stuff.
+LOCAL_SRC_FILES += \
+    fabs.cpp \
 
 # Arch specific optimizations.
 
@@ -480,8 +482,10 @@ LOCAL_C_INCLUDES_64 += $(LOCAL_PATH)/upstream-freebsd/lib/msun/ld128/
 LOCAL_CLANG := $(libm_clang)
 LOCAL_ARM_MODE := arm
 LOCAL_CFLAGS := \
+    -D__BIONIC_NO_MATH_INLINES \
     -DFLT_EVAL_METHOD=0 \
     -include $(LOCAL_PATH)/freebsd-compat.h \
+    -Werror \
     -Wno-missing-braces \
     -Wno-parentheses \
     -Wno-sign-compare \
@@ -500,11 +504,8 @@ LOCAL_CFLAGS += \
     -fno-builtin-rintf \
     -fno-builtin-rintl \
 
-LOCAL_CONLY_FLAGS := \
-    -std=c99 \
-
 LOCAL_NATIVE_COVERAGE := $(bionic_coverage)
-LOCAL_ADDRESS_SANITIZER := false
+LOCAL_SANITIZE := never
 include $(BUILD_STATIC_LIBRARY)
 
 # -----------------------------------------------------------------------------
@@ -512,13 +513,25 @@ include $(BUILD_STATIC_LIBRARY)
 # -----------------------------------------------------------------------------
 include $(CLEAR_VARS)
 
-LOCAL_ADDITIONAL_DEPENDENCIES := $(LOCAL_PATH)/libm.map
+LOCAL_ADDITIONAL_DEPENDENCIES := \
+    $(LOCAL_PATH)/libm.arm.map \
+    $(LOCAL_PATH)/libm.arm64.map \
+    $(LOCAL_PATH)/libm.mips.map \
+    $(LOCAL_PATH)/libm.mips64.map \
+    $(LOCAL_PATH)/libm.x86.map \
+    $(LOCAL_PATH)/libm.x86_64.map \
 
-# TODO: This is to work around b/19059885. Remove after root cause is fixed
+# TODO: This is to work around b/24465209. Remove after root cause is fixed
 LOCAL_LDFLAGS_arm := -Wl,--hash-style=both
 LOCAL_LDFLAGS_x86 := -Wl,--hash-style=both
 
-LOCAL_LDFLAGS := -Wl,--version-script,$(LOCAL_PATH)/libm.map
+LOCAL_LDFLAGS_arm    += -Wl,--version-script,$(LOCAL_PATH)/libm.arm.map
+LOCAL_LDFLAGS_arm64  += -Wl,--version-script,$(LOCAL_PATH)/libm.arm64.map
+LOCAL_LDFLAGS_mips   += -Wl,--version-script,$(LOCAL_PATH)/libm.mips.map
+LOCAL_LDFLAGS_mips64 += -Wl,--version-script,$(LOCAL_PATH)/libm.mips64.map
+LOCAL_LDFLAGS_x86    += -Wl,--version-script,$(LOCAL_PATH)/libm.x86.map
+LOCAL_LDFLAGS_x86_64 += -Wl,--version-script,$(LOCAL_PATH)/libm.x86_64.map
+
 
 LOCAL_MODULE := libm
 LOCAL_CLANG := $(libm_clang)
@@ -526,7 +539,7 @@ LOCAL_SYSTEM_SHARED_LIBRARIES := libc
 LOCAL_WHOLE_STATIC_LIBRARIES := libm
 
 LOCAL_NATIVE_COVERAGE := $(bionic_coverage)
-LOCAL_ADDRESS_SANITIZER := false
+LOCAL_SANITIZE := never
 
 LOCAL_CXX_STL := none
 

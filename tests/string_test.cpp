@@ -22,6 +22,7 @@
 #include <gtest/gtest.h>
 #include <malloc.h>
 #include <math.h>
+#include <stdint.h>
 
 #include "buffer_tests.h"
 
@@ -451,6 +452,13 @@ TEST(string, strchr) {
       ASSERT_TRUE(strchr(state.ptr1, seek_char) == expected);
     }
   }
+}
+
+TEST(string, strchrnul) {
+  const char* s = "01234222";
+  EXPECT_TRUE(strchrnul(s, '2') == &s[2]);
+  EXPECT_TRUE(strchrnul(s, '8') == (s + strlen(s)));
+  EXPECT_TRUE(strchrnul(s, '\0') == (s + strlen(s)));
 }
 
 TEST(string, strcmp) {
@@ -1408,6 +1416,10 @@ TEST(string, strnlen_147048) {
   *heap_src = '\0';
   EXPECT_EQ(0U, strnlen(heap_src, 1024*1024*1024));
   delete[] heap_src;
+}
+
+TEST(string, strnlen_74741) {
+  ASSERT_EQ(4U, strnlen("test", SIZE_MAX));
 }
 
 TEST(string, mempcpy) {

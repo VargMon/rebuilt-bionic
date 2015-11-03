@@ -52,15 +52,16 @@ typedef int (*fn)(void);
 #define LIBSIZE 1024*1024 // how much address space to reserve for it
 
 #if defined(__LP64__)
-#define LIBPATH_PREFIX "/nativetest64/libdlext_test_fd/"
+#define LIBPATH_PREFIX "/nativetest64/"
 #else
-#define LIBPATH_PREFIX "/nativetest/libdlext_test_fd/"
+#define LIBPATH_PREFIX "/nativetest/"
 #endif
 
-#define LIBPATH LIBPATH_PREFIX "libdlext_test_fd.so"
-#define LIBZIPPATH LIBPATH_PREFIX "libdlext_test_fd_zipaligned.zip"
+#define LIBPATH LIBPATH_PREFIX "libdlext_test_fd/libdlext_test_fd.so"
+#define LIBZIPPATH LIBPATH_PREFIX "libdlext_test_zip/libdlext_test_zip_zipaligned.zip"
+#define LIBZIPPATH_WITH_RUNPATH LIBPATH_PREFIX "libdlext_test_runpath_zip/libdlext_test_runpath_zip_zipaligned.zip"
 
-#define LIBZIP_OFFSET 2*PAGE_SIZE
+#define LIBZIP_OFFSET PAGE_SIZE
 
 class DlExtTest : public ::testing::Test {
 protected:
@@ -114,6 +115,10 @@ TEST_F(DlExtTest, ExtInfoUseFd) {
   fn f = reinterpret_cast<fn>(dlsym(handle_, "getRandomNumber"));
   ASSERT_DL_NOTNULL(f);
   EXPECT_EQ(4, f());
+
+  uint32_t* taxicab_number = reinterpret_cast<uint32_t*>(dlsym(handle_, "dlopen_testlib_taxicab_number"));
+  ASSERT_DL_NOTNULL(taxicab_number);
+  EXPECT_EQ(1729U, *taxicab_number);
 }
 
 TEST_F(DlExtTest, ExtInfoUseFdWithOffset) {
@@ -127,9 +132,9 @@ TEST_F(DlExtTest, ExtInfoUseFdWithOffset) {
   handle_ = android_dlopen_ext(lib_path.c_str(), RTLD_NOW, &extinfo);
   ASSERT_DL_NOTNULL(handle_);
 
-  fn f = reinterpret_cast<fn>(dlsym(handle_, "getRandomNumber"));
-  ASSERT_DL_NOTNULL(f);
-  EXPECT_EQ(4, f());
+  uint32_t* taxicab_number = reinterpret_cast<uint32_t*>(dlsym(handle_, "dlopen_testlib_taxicab_number"));
+  ASSERT_DL_NOTNULL(taxicab_number);
+  EXPECT_EQ(1729U, *taxicab_number);
 }
 
 TEST_F(DlExtTest, ExtInfoUseFdWithInvalidOffset) {
@@ -159,7 +164,7 @@ TEST_F(DlExtTest, ExtInfoUseFdWithInvalidOffset) {
   ASSERT_TRUE(handle_ == nullptr);
   ASSERT_SUBSTR("dlopen failed: file offset for the library \"libname_placeholder\" is negative", dlerror());
 
-  extinfo.library_fd_offset = PAGE_SIZE;
+  extinfo.library_fd_offset = 0;
   handle_ = android_dlopen_ext("libname_ignored", RTLD_NOW, &extinfo);
   ASSERT_TRUE(handle_ == nullptr);
   ASSERT_EQ("dlopen failed: \"" + lib_realpath + "\" has bad ELF magic", dlerror());
@@ -214,14 +219,31 @@ TEST(dlext, android_dlopen_ext_force_load_soname_exception) {
 TEST(dlfcn, dlopen_from_zip_absolute_path) {
   const std::string lib_path = std::string(getenv("ANDROID_DATA")) + LIBZIPPATH;
 
-  void* handle = dlopen((lib_path + "!/libdir/libdlext_test_fd.so").c_str(), RTLD_NOW);
+  void* handle = dlopen((lib_path + "!/libdir/libatest_simple_zip.so").c_str(), RTLD_NOW);
   ASSERT_TRUE(handle != nullptr) << dlerror();
 
-  int (*fn)(void);
-  fn = reinterpret_cast<int (*)(void)>(dlsym(handle, "getRandomNumber"));
-  ASSERT_TRUE(fn != nullptr);
-  EXPECT_EQ(4, fn());
+  uint32_t* taxicab_number = reinterpret_cast<uint32_t*>(dlsym(handle, "dlopen_testlib_taxicab_number"));
+  ASSERT_DL_NOTNULL(taxicab_number);
+  EXPECT_EQ(1729U, *taxicab_number);
 
+  dlclose(handle);
+}
+
+TEST(dlfcn, dlopen_from_zip_with_dt_runpath) {
+  const std::string lib_path = std::string(getenv("ANDROID_DATA")) + LIBZIPPATH_WITH_RUNPATH;
+
+  void* handle = dlopen((lib_path + "!/libdir/libtest_dt_runpath_d_zip.so").c_str(), RTLD_NOW);
+
+  ASSERT_TRUE(handle != nullptr) << dlerror();
+
+  typedef void *(* dlopen_b_fn)();
+  dlopen_b_fn fn = (dlopen_b_fn)dlsym(handle, "dlopen_b");
+  ASSERT_TRUE(fn != nullptr) << dlerror();
+
+  void *p = fn();
+  ASSERT_TRUE(p != nullptr) << dlerror();
+
+  dlclose(p);
   dlclose(handle);
 }
 
@@ -234,18 +256,22 @@ TEST(dlfcn, dlopen_from_zip_ld_library_path) {
 
   ASSERT_TRUE(android_update_LD_LIBRARY_PATH != nullptr) << dlerror();
 
-  void* handle = dlopen("libdlext_test_fd.so", RTLD_NOW);
+  void* handle = dlopen("libdlext_test_zip.so", RTLD_NOW);
   ASSERT_TRUE(handle == nullptr);
 
   android_update_LD_LIBRARY_PATH(lib_path.c_str());
 
-  handle = dlopen("libdlext_test_fd.so", RTLD_NOW);
+  handle = dlopen("libdlext_test_zip.so", RTLD_NOW);
   ASSERT_TRUE(handle != nullptr) << dlerror();
 
   int (*fn)(void);
   fn = reinterpret_cast<int (*)(void)>(dlsym(handle, "getRandomNumber"));
   ASSERT_TRUE(fn != nullptr);
   EXPECT_EQ(4, fn());
+
+  uint32_t* taxicab_number = reinterpret_cast<uint32_t*>(dlsym(handle, "dlopen_testlib_taxicab_number"));
+  ASSERT_DL_NOTNULL(taxicab_number);
+  EXPECT_EQ(1729U, *taxicab_number);
 
   dlclose(handle);
 }
@@ -317,6 +343,43 @@ TEST_F(DlExtTest, ReservedHintTooSmall) {
   EXPECT_EQ(4, f());
 }
 
+TEST_F(DlExtTest, LoadAtFixedAddress) {
+  void* start = mmap(nullptr, LIBSIZE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS,
+                     -1, 0);
+  ASSERT_TRUE(start != MAP_FAILED);
+  munmap(start, LIBSIZE);
+
+  android_dlextinfo extinfo;
+  extinfo.flags = ANDROID_DLEXT_LOAD_AT_FIXED_ADDRESS;
+  extinfo.reserved_addr = start;
+
+  handle_ = android_dlopen_ext(LIBNAME, RTLD_NOW, &extinfo);
+  ASSERT_DL_NOTNULL(handle_);
+  fn f = reinterpret_cast<fn>(dlsym(handle_, "getRandomNumber"));
+  ASSERT_DL_NOTNULL(f);
+  EXPECT_GE(reinterpret_cast<void*>(f), start);
+  EXPECT_LT(reinterpret_cast<void*>(f), reinterpret_cast<char*>(start) + LIBSIZE);
+
+  EXPECT_EQ(4, f());
+}
+
+TEST_F(DlExtTest, LoadAtFixedAddressTooSmall) {
+  void* start = mmap(nullptr, LIBSIZE + PAGE_SIZE, PROT_NONE,
+                         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  ASSERT_TRUE(start != MAP_FAILED);
+  munmap(start, LIBSIZE + PAGE_SIZE);
+  void* new_addr = mmap(reinterpret_cast<uint8_t*>(start) + PAGE_SIZE, LIBSIZE, PROT_NONE,
+                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  ASSERT_TRUE(new_addr != MAP_FAILED);
+
+  android_dlextinfo extinfo;
+  extinfo.flags = ANDROID_DLEXT_LOAD_AT_FIXED_ADDRESS;
+  extinfo.reserved_addr = start;
+
+  handle_ = android_dlopen_ext(LIBNAME, RTLD_NOW, &extinfo);
+  ASSERT_TRUE(handle_ == nullptr);
+}
+
 class DlExtRelroSharingTest : public DlExtTest {
 protected:
   virtual void SetUp() {
@@ -372,6 +435,10 @@ protected:
     fn f = reinterpret_cast<fn>(dlsym(handle_, "getRandomNumber"));
     ASSERT_DL_NOTNULL(f);
     EXPECT_EQ(4, f());
+
+    uint32_t* taxicab_number = reinterpret_cast<uint32_t*>(dlsym(handle_, "dlopen_testlib_taxicab_number"));
+    ASSERT_DL_NOTNULL(taxicab_number);
+    EXPECT_EQ(1729U, *taxicab_number);
   }
 
   void SpawnChildrenAndMeasurePss(const char* lib, bool share_relro, size_t* pss_out);

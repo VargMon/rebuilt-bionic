@@ -50,11 +50,11 @@
 #include <elf.h>
 #include "libc_init_common.h"
 
+#include "private/bionic_globals.h"
 #include "private/bionic_tls.h"
 #include "private/KernelArgumentBlock.h"
 
 extern "C" {
-  extern void malloc_debug_init(void);
   extern void malloc_debug_fini(void);
   extern void netdClientInit(void);
   extern int __cxa_atexit(void (*)(void *), void *, void *);
@@ -74,10 +74,11 @@ __attribute__((constructor)) static void __libc_preinit() {
   // __libc_init_common() will change the TLS area so the old one won't be accessible anyway.
   *args_slot = NULL;
 
+  __libc_init_globals(*args);
   __libc_init_common(*args);
 
   // Hooks for various libraries to let them know that we're starting up.
-  malloc_debug_init();
+  __libc_globals.mutate(__libc_init_malloc);
   netdClientInit();
 }
 
