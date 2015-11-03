@@ -57,6 +57,7 @@
 #define DEAD_PROCESS  8
 #define ACCOUNTING    9
 
+#define UT_UNKNOWN = EMPTY
 struct lastlog
 {
     time_t ll_time;
@@ -101,7 +102,7 @@ void setutent(void);
 struct utmp* getutent(void);
 void endutent(void);
 
-int login_tty(int);
+int login_tty(int fd);
 
 __END_DECLS
 
