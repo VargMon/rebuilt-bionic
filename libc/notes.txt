@@ -1,0 +1,3 @@
+pty.cpp
+openpty:
+O_RDWR = "/dev/ptmx"

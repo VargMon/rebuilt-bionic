@@ -25,8 +25,8 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef NDK_ANDROID_SUPPORT_STDINT_H
-#define NDK_ANDROID_SUPPORT_STDINT_H
+#ifndef _STDINT_H
+#define _STDINT_H
 
 #include_next <stdint.h>
 
@@ -36,4 +36,4 @@
 
 #endif // !__LP64__
 
-#endif  // NDK_ANDROID_SUPPORT_STDINT_H
+#endif  // _STDINT_H

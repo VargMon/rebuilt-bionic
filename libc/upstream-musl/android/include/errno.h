@@ -25,8 +25,8 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
-#ifndef NDK_ANDROID_SUPPORT_ERRNO_H
-#define NDK_ANDROID_SUPPORT_ERRNO_H
+#ifndef _ERRNO_H
+#define _ERRNO_H
 
 #include_next <errno.h>
 
@@ -40,4 +40,4 @@
 
 #endif // !__LP64__
 
-#endif  /* NDK_ANDROID_SUPPORT_ERRNO_H */
+#endif  /* _ERRNO_H */
