@@ -57,10 +57,9 @@ int     setresgid:setresgid32(gid_t, gid_t, gid_t)   arm,x86
 int     setresgid:setresgid(gid_t, gid_t, gid_t)     arm64,mips,mips64,x86_64
 void*   __brk:brk(void*)           all
 int     kill(pid_t, int)           all
-int     tkill(pid_t tid, int sig)  all
 int     tgkill(pid_t tgid, pid_t tid, int sig)  all
 int     __ptrace:ptrace(int request, int pid, void* addr, void* data)  all
-int     __set_thread_area:set_thread_area(void*  user_desc)  mips,x86
+
 # <sys/resource.h>
 int getrusage(int, struct rusage*)  all
 int __getpriority:getpriority(int, int)  all
@@ -75,12 +74,9 @@ int setrlimit|setrlimit64(int, const struct rlimit*)  arm64,mips64,x86_64
 int prlimit64|prlimit(pid_t, int, struct rlimit64*, const struct rlimit64*)  arm64,mips64,x86_64
 int prlimit64(pid_t, int, struct rlimit64*, const struct rlimit64*)  arm,mips,x86
 
-long ulimit (int __cmd, ...) mips,x86,x86_64
-
 int     setgroups:setgroups32(int, const gid_t*)   arm,x86
 int     setgroups:setgroups(int, const gid_t*)     arm64,mips,mips64,x86_64
 int     setpgid(pid_t, pid_t)  all
-pid_t   vfork(void)  arm
 int     setregid:setregid32(gid_t, gid_t)  arm,x86
 int     setregid:setregid(gid_t, gid_t)    arm64,mips,mips64,x86_64
 int     chroot(const char*)  all
@@ -98,6 +94,16 @@ ssize_t     pread64(int, void*, size_t, off64_t) arm,mips,x86
 ssize_t     pread64|pread(int, void*, size_t, off_t) arm64,mips64,x86_64
 ssize_t     pwrite64(int, void*, size_t, off64_t) arm,mips,x86
 ssize_t     pwrite64|pwrite(int, void*, size_t, off_t) arm64,mips64,x86_64
+
+# On LP32, preadv/pwritev don't use off64_t --- they use pairs of 32-bit
+# arguments to avoid problems on architectures like ARM where 64-bit arguments
+# must be in a register pair starting with an even-numbered register.
+# See linux/fs/read_write.c and https://lwn.net/Articles/311630/.
+ssize_t     __preadv64:preadv(int, const struct iovec*, int, long, long) arm,mips,x86
+ssize_t     preadv|preadv64(int, const struct iovec*, int, off_t) arm64,mips64,x86_64
+ssize_t     __pwritev64:pwritev(int, const struct iovec*, int, long, long) arm,mips,x86
+ssize_t     pwritev|pwritev64(int, const struct iovec*, int, off_t) arm64,mips64,x86_64
+
 int         ___close:close(int)  all
 pid_t       __getpid:getpid()  all
 int         munmap(void*, size_t)  all
@@ -110,12 +116,9 @@ int         munlock(const void* addr, size_t len)   all
 int         mlockall(int flags)   all
 int         munlockall()   all
 int         mincore(void*  start, size_t  length, unsigned char*  vec)   all
-int         remap_file_pages(void*, size_t, int, ssize_t , int) all
 int         __ioctl:ioctl(int, int, void*)  all
 int         readv(int, const struct iovec*, int)   all
 int         writev(int, const struct iovec*, int)  all
-ssize_t     preadv(int, const struct iovec*, int, off_t) all
-ssize_t     pwritev(int, const struct iovec*, int, off_t) all
 int         __fcntl64:fcntl64(int, int, void*)  arm,mips,x86
 int         fcntl(int, int, void*)  arm64,mips64,x86_64
 int         flock(int, int)   all
@@ -123,32 +126,15 @@ int         ___fchmod:fchmod(int, mode_t)  all
 int         dup(int)  all
 int         pipe2(int*, int) all
 int         dup3(int, int, int)   all
-int         getdents:getdents64(unsigned int, struct dirent*, unsigned int)   all
 int         fsync(int)  all
 int         fdatasync(int) all
 int         fchown:fchown32(int, uid_t, gid_t)  arm,x86
 int         fchown:fchown(int, uid_t, gid_t)    arm64,mips,mips64,x86_64
 void        sync(void)  all
-int         syncfs(int fd) all
-int         sync_file_range(int fd, off64_t offset, off64_t nbytes, unsigned int flags) mips,x86
-int         sync_file_range2(int fd, unsigned int flags, off64_t offset, off64_t nbytes) arm
-int         __fstatfs64:fstatfs64(int, size_t, struct statfs*)  arm,mips,x86
-int         fstatfs(int, struct statfs*)  arm64,x86_64
-int         fsetxattr(int, const char*, const void*, size_t, int) all
-ssize_t     fgetxattr(int, const char*, void*, size_t) all
 int         ___fsetxattr:fsetxattr(int, const char*, const void*, size_t, int) all
 ssize_t     ___fgetxattr:fgetxattr(int, const char*, void*, size_t) all
-ssize_t     flistxattr(int, char*, size_t) all
+ssize_t     ___flistxattr:flistxattr(int, char*, size_t) all
 int         fremovexattr(int, const char*) all
-ssize_t     splice (int, loff_t*, int, loff_t*, size_t, unsigned int) all
-ssize_t     vmsplice (int, const struct iovec*, size_t, unsigned int) all
-ssize_t     process_vm_readv(pid_t, const struct iovec*, unsigned long, const struct iovec*, unsigned long, unsigned long) arm,mips
-ssize_t     process_vm_writev(pid_t, const struct iovec*, unsigned long, const struct iovec*, unsigned long, unsigned long flags) arm,mips
-ssize_t     tee (int, int, size_t, unsigned int) all
-int         name_to_handle_at (int, const char*, struct file_handle*, int*, int) all
-int         open_by_handle_at (int, struct file_handle*, int) all
-int         setfsgid(uid_t fsgid) all
-int         setfsuid(uid_t) all
 
 int __getdents64:getdents64(unsigned int, struct dirent*, unsigned int)   arm,arm64,mips,mips64,x86,x86_64
 
@@ -207,9 +193,6 @@ int     fstat64|fstat:fstat(int, struct stat*)    arm64,x86_64
 int     chdir(const char*)              all
 int     mount(const char*, const char*, const char*, unsigned long, const void*)  all
 int     umount2(const char*, int)  all
-int     fstat:fstat64(int, struct stat*)    arm,mips,x86
-int     fstat(int, struct stat*)    arm64,x86_64
-int     ustat(dev_t, struct ustat*) arm,mips,x86,x86_64
 int     __getcwd:getcwd(char* buf, size_t size)  all
 int     fchdir(int)    all
 int     setxattr(const char*, const char*, const void*, size_t, int) all
@@ -220,18 +203,12 @@ ssize_t listxattr(const char*, char*, size_t) all
 ssize_t llistxattr(const char*, char*, size_t) all
 int     removexattr(const char*, const char*) all
 int     lremovexattr(const char*, const char*) all
-int     __statfs64:statfs64(const char*, size_t, struct statfs*)  arm,mips,x86
-int     statfs(const char*, struct statfs*)  arm64,x86_64
 int     swapon(const char*, int) all
 int     swapoff(const char*) all
-int     quotactl(int, const char *, int id, caddr_t) all
-int     futimesat(int, const char *, const struct timeval[2]) arm,mips,x86,x86_64
 
 # time
 int           settimeofday(const struct timeval*, const struct timezone*)   all
 clock_t       times(struct tms*)       all
-int           adjtimex(struct timex*) all
-int           clock_adjtime (clockid_t, struct timex*) all
 int           nanosleep(const struct timespec*, struct timespec*)   all
 int           clock_settime(clockid_t, const struct timespec*)  all
 int           clock_getres(clockid_t, struct timespec*)   all
@@ -244,9 +221,8 @@ int           __timer_gettime:timer_gettime(__kernel_timer_t, struct itimerspec*
 int           __timer_getoverrun:timer_getoverrun(__kernel_timer_t)                                              all
 int           __timer_delete:timer_delete(__kernel_timer_t)                                                      all
 int           timerfd_create(clockid_t, int)   all
-int           timerfd_settime(int, int, const struct itimerspec*, struct itimerspec *)   all
+int           timerfd_settime(int, int, const struct itimerspec*, struct itimerspec*)   all
 int           timerfd_gettime(int, struct itimerspec*)   all
-int           stime(time_t *t) mips,x86
 
 # signals
 int     __sigaction:sigaction(int, const struct sigaction*, struct sigaction*)  arm,mips,x86
@@ -282,7 +258,6 @@ int           __socket:socketcall:1(int, int, int) x86
 int           bind:socketcall:2(int, struct sockaddr*, int)  x86
 int           __connect:socketcall:3(int, struct sockaddr*, socklen_t)   x86
 int           listen:socketcall:4(int, int)                   x86
-int           accept:socketcall:5(int, struct sockaddr*, socklen_t*)  x86
 int           getsockname:socketcall:6(int, struct sockaddr*, socklen_t*)  x86
 int           getpeername:socketcall:7(int, struct sockaddr*, socklen_t*)  x86
 int           socketpair:socketcall:8(int, int, int, int*)    x86
@@ -312,28 +287,16 @@ int unshare(int) all
 int __sched_getaffinity:sched_getaffinity(pid_t pid, size_t setsize, cpu_set_t* set)  all
 int __getcpu:getcpu(unsigned*, unsigned*, void*) all
 
-# io priorities
-int ioprio_set(int which, int who, int ioprio) all
-int ioprio_get(int which, int who) all
-
 # other
 int     uname(struct utsname*)  all
 mode_t  umask(mode_t)  all
 int     __reboot:reboot(int, int, int, void*)  all
-int     __syslog:syslog(int, char*, int)  all
 int     init_module(void*, unsigned long, const char*)  all
 int     delete_module(const char*, unsigned int)   all
 int     klogctl:syslog(int, char*, int)   all
 int     sysinfo(struct sysinfo*)  all
 int     personality(unsigned long)  all
-long    perf_event_open(struct perf_event_attr* attr_uptr, pid_t pid, int cpu, int group_fd, unsigned long flags) all
-int     ioperm(unsigned long, unsigned long, int) mips,x86
-int     iopl(int) mips,x86
-int     vhangup(void) all
-int     bdflush (int, long int) arm,mips,x86
-int     profil(unsigned short*, size_t, size_t, unsigned int) mips,x86
-int     sethostname(const char*, size_t) all
-int     pivot_root(const char*, const char*) all
+
 ssize_t tee(int, int, size_t, unsigned int)  all
 ssize_t splice(int, off64_t*, int, off64_t*, size_t, unsigned int)  all
 ssize_t vmsplice(int, const struct iovec*, size_t, unsigned int)  all
@@ -346,8 +309,6 @@ int eventfd:eventfd2(unsigned int, int)  all
 
 void _exit|_Exit:exit_group(int)  all
 void __exit:exit(int)  all
-
-int futex(void*, int, int, void*, void*, int)  all
 
 int inotify_init1(int)  all
 int inotify_add_watch(int, const char*, unsigned int)  all
@@ -379,29 +340,9 @@ int     __set_tls:set_thread_area(void*) mips,mips64
 
 # x86-specific
 int     __set_thread_area:set_thread_area(void*) x86
-int    ioperm(unsigned long, unsigned long, int) x86,x86_64
-int    iopl(int) x86,x86_64
 
 # vdso stuff.
-int clock_gettime(clockid_t, timespec*)                 arm,mips,mips64,x86
-int __clock_gettime:clock_gettime(clockid_t, timespec*) arm64,x86_64
-int gettimeofday(timeval*, timezone*)                   arm,mips,mips64,x86
-int __gettimeofday:gettimeofday(timeval*, timezone*)    arm64,x86_64
-
-# SysV IPC
-int     int ipc(unsigned int call, int first, int second, int third, void* ptr, long fifth) mips,x86
-int     semget(key_t key, int nsems, int semflg)  arm,arm64
-int     semop(int semid, struct sembuf* sops, unsigned nsops)  arm,arm64
-int     semtimedop(int semid, struct sembuf* sops, unsigned nsops, struct timespec* timeout) arm,arm64
-int     semctl(int semid, int semnum, int cmd, ...) arm,arm64
-
-void *  shmat(int shmid, const void* shmaddr,int shmflg) arm,arm64
-int     shmdt(const void* shmaddr) arm,arm64
-int     shmctl(int shmid, int cmd, struct shmid_ds* buf) arm,arm64
-int     shmget(key_t key, size_t size, int shmflg) arm,arm64
-int     msgctl(int msqid, int cmd, struct msqid_ds* buf) arm,arm64
-int     msgget(key_t key, int msgflg) arm,arm64
-ssize_t msgrcv(int msqid, void* msgp, size_t msgsz, long int msgtyp, int msgflg) arm,arm64
-int     msgsnd(int msqid, const void* msgp, size_t msgsz, int msgflg) arm,arm64
-
-
+int clock_gettime(clockid_t, timespec*)                 arm,mips,mips64
+int __clock_gettime:clock_gettime(clockid_t, timespec*) arm64,x86,x86_64
+int gettimeofday(timeval*, timezone*)                   arm,mips,mips64
+int __gettimeofday:gettimeofday(timeval*, timezone*)    arm64,x86,x86_64

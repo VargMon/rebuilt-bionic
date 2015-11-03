@@ -47,7 +47,10 @@
 
 #include "private/libc_logging.h"
 
-// The part is only for 32-bit targets.
+// Brillo doesn't need to support any legacy cruft.
+#if !defined(__BRILLO__)
+
+// Most of the cruft is only for 32-bit Android targets.
 #if !defined(__LP64__)
 
 // These were accidentally declared in <unistd.h> because we stupidly used to inline
@@ -354,20 +357,16 @@ extern "C" pthread_internal_t* __get_thread() {
   return __real_get_thread();
 }
 
-#endif // !defined(__LP64__)
-
-// This is never implemented in bionic, only needed for ABI compatibility with the NDK.
-extern "C" char* getusershell() {
-  return NULL;
+// This one exists only for the LP32 NDK and is not present anywhere else.
+extern "C" long __set_errno_internal(int);
+extern "C" long __set_errno(int n) {
+  return __set_errno_internal(n);
 }
 
-// This is never implemented in bionic, only needed for ABI compatibility with the NDK.
-extern "C" void setusershell() { }
+#endif // !defined(__LP64__)
 
-// This is never implemented in bionic, only needed for ABI compatibility with the NDK.
-extern "C" void endusershell() { }
-
-// This is never implemented in bionic, only needed for ABI compatibility with the NDK.
+// This was never implemented in bionic, only needed for ABI compatibility with the NDK.
+// In the M time frame, over 1000 apps have a reference to this!
 extern "C" void endpwent() { }
 
 // Since dlmalloc_inspect_all and dlmalloc_trim are exported for systems
@@ -375,20 +374,18 @@ extern "C" void endpwent() { }
 #if defined(USE_JEMALLOC)
 extern "C" void dlmalloc_inspect_all(void (*)(void*, void*, size_t, void*), void*) {
 }
+extern "C" int dlmalloc_trim(size_t) {
+    return 0;
+}
 #else
 extern "C" void dlmalloc_inspect_all_real(void (*)(void*, void*, size_t, void*), void*);
 extern "C" void dlmalloc_inspect_all(void (*handler)(void*, void*, size_t, void*), void* arg) {
   dlmalloc_inspect_all_real(handler, arg);
 }
-#endif
-
-#if defined(USE_JEMALLOC)
-extern "C" int dlmalloc_trim(size_t) {
-  return 0;
-}
-#else
 extern "C" int dlmalloc_trim_real(size_t);
 extern "C" int dlmalloc_trim(size_t pad) {
   return dlmalloc_trim_real(pad);
 }
 #endif
+
+#endif // !defined(__BRILLO__)

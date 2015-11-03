@@ -36,34 +36,26 @@
 #define _PATH_WTMP      "/var/log/wtmp"
 #define _PATH_LASTLOG   "/var/log/lastlog"
 
-#define	UT_NAMESIZE	8
-#define	UT_LINESIZE	8
-#define	UT_HOSTSIZE	16
+#ifdef __LP64__
+#define UT_NAMESIZE 32
+#define UT_LINESIZE 32
+#define UT_HOSTSIZE 256
+#else
+#define UT_NAMESIZE 8
+#define UT_LINESIZE 8
+#define UT_HOSTSIZE 16
+#endif
 
-enum {
-  EMPTY = 0,
-#define EMPTY           EMPTY
-  RUN_LVL = 1,
-#define RUN_LVL         RUN_LVL
-  BOOT_TIME = 2,
-#define BOOT_TIME       BOOT_TIME
-  NEW_TIME = 3,
-#define NEW_TIME        NEW_TIME
-  OLD_TIME = 4,
-#define OLD_TIME        OLD_TIME
-  INIT_PROCESS = 5,
-#define INIT_PROCESS    INIT_PROCESS
-  LOGIN_PROCESS = 6,
-#define LOGIN_PROCESS   LOGIN_PROCESS
-  USER_PROCESS = 7,
-#define USER_PROCESS    USER_PROCESS
-  DEAD_PROCESS = 8,
-#define DEAD_PROCESS    DEAD_PROCESS
-  ACCOUNTING = 9,
-#define ACCOUNTING      ACCOUNTING
-  UT_UNKNOWN = EMPTY
-#define UT_UNKNOWN      UT_UNKNOWN
-};
+#define EMPTY         0
+#define RUN_LVL       1
+#define BOOT_TIME     2
+#define NEW_TIME      3
+#define OLD_TIME      4
+#define INIT_PROCESS  5
+#define LOGIN_PROCESS 6
+#define USER_PROCESS  7
+#define DEAD_PROCESS  8
+#define ACCOUNTING    9
 
 struct lastlog
 {
@@ -105,10 +97,11 @@ struct utmp
 __BEGIN_DECLS
 
 int utmpname(const char*);
-void setutent();
-struct utmp* getutent();
+void setutent(void);
+struct utmp* getutent(void);
+void endutent(void);
 
-int login_tty(int fd);
+int login_tty(int);
 
 __END_DECLS
 

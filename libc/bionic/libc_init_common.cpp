@@ -42,10 +42,12 @@
 #include <unistd.h>
 
 #include "private/bionic_auxv.h"
+#include "private/bionic_globals.h"
 #include "private/bionic_ssp.h"
 #include "private/bionic_tls.h"
 #include "private/KernelArgumentBlock.h"
 #include "private/libc_logging.h"
+#include "private/WriteProtected.h"
 #include "pthread_internal.h"
 
 extern "C" abort_msg_t** __abort_message_ptr;
@@ -53,7 +55,7 @@ extern "C" int __system_properties_init(void);
 extern "C" int __set_tls(void* ptr);
 extern "C" int __set_tid_address(int* tid_address);
 
-__LIBC_HIDDEN__ void __libc_init_vdso();
+__LIBC_HIDDEN__ WriteProtected<libc_globals> __libc_globals;
 
 // Not public, but well-known in the BSDs.
 const char* __progname;
@@ -64,18 +66,15 @@ char** environ;
 // Declared in "private/bionic_ssp.h".
 uintptr_t __stack_chk_guard = 0;
 
-/* Init TLS for the initial thread. Called by the linker _before_ libc is mapped
- * in memory. Beware: all writes to libc globals from this function will
- * apply to linker-private copies and will not be visible from libc later on.
- *
- * Note: this function creates a pthread_internal_t for the initial thread and
- * stores the pointer in TLS, but does not add it to pthread's thread list. This
- * has to be done later from libc itself (see __libc_init_common).
- *
- * This function also stores a pointer to the kernel argument block in a TLS slot to be
- * picked up by the libc constructor.
- */
-void __libc_init_tls(KernelArgumentBlock& args) {
+// Setup for the main thread. For dynamic executables, this is called by the
+// linker _before_ libc is mapped in memory. This means that all writes to
+// globals from this function will apply to linker-private copies and will not
+// be visible from libc later on.
+//
+// Note: this function creates a pthread_internal_t for the initial thread and
+// stores the pointer in TLS, but does not add it to pthread's thread list. This
+// has to be done later from libc itself (see __libc_init_common).
+void __libc_init_main_thread(KernelArgumentBlock& args) {
   __libc_auxv = args.auxv;
 
   static pthread_internal_t main_thread;
@@ -99,9 +98,23 @@ void __libc_init_tls(KernelArgumentBlock& args) {
   __init_thread(&main_thread);
   __init_tls(&main_thread);
   __set_tls(main_thread.tls);
+
+  // Store a pointer to the kernel argument block in a TLS slot to be
+  // picked up by the libc constructor.
   main_thread.tls[TLS_SLOT_BIONIC_PREINIT] = &args;
 
   __init_alternate_signal_stack(&main_thread);
+}
+
+void __libc_init_globals(KernelArgumentBlock& args) {
+  // Initialize libc globals that are needed in both the linker and in libc.
+  // In dynamic binaries, this is run at least twice for different copies of the
+  // globals, once for the linker's copy and once for the one in libc.so.
+  __libc_globals.initialize();
+  __libc_globals.mutate([&args](libc_globals* globals) {
+    __libc_init_vdso(globals, args);
+    __libc_init_setjmp_cookie(globals, args);
+  });
 }
 
 void __libc_init_common(KernelArgumentBlock& args) {
@@ -120,8 +133,6 @@ void __libc_init_common(KernelArgumentBlock& args) {
   __pthread_internal_add(main_thread);
 
   __system_properties_init(); // Requires 'environ'.
-
-  __libc_init_vdso();
 }
 
 __noreturn static void __early_abort(int line) {
@@ -235,38 +246,37 @@ static bool __is_valid_environment_variable(const char* name) {
 
 static bool __is_unsafe_environment_variable(const char* name) {
   // None of these should be allowed in setuid programs.
-  static const char* const UNSAFE_VARIABLE_NAMES[] = {
-      "GCONV_PATH",
-      "GETCONF_DIR",
-      "HOSTALIASES",
-      "JE_MALLOC_CONF",
-      "LD_AOUT_LIBRARY_PATH",
-      "LD_AOUT_PRELOAD",
-      "LD_AUDIT",
-      "LD_DEBUG",
-      "LD_DEBUG_OUTPUT",
-      "LD_DYNAMIC_WEAK",
-      "LD_LIBRARY_PATH",
-      "LD_ORIGIN_PATH",
-      "LD_PRELOAD",
-      "LD_PROFILE",
-      "LD_SHOW_AUXV",
-      "LD_USE_LOAD_BIAS",
-      "LOCALDOMAIN",
-      "LOCPATH",
-      "MALLOC_CHECK_",
-      "MALLOC_CONF",
-      "MALLOC_TRACE",
-      "NIS_PATH",
-      "NLSPATH",
-      "RESOLV_HOST_CONF",
-      "RES_OPTIONS",
-      "TMPDIR",
-      "TZDIR",
-      nullptr
+  static constexpr const char* UNSAFE_VARIABLE_NAMES[] = {
+    "GCONV_PATH",
+    "GETCONF_DIR",
+    "HOSTALIASES",
+    "JE_MALLOC_CONF",
+    "LD_AOUT_LIBRARY_PATH",
+    "LD_AOUT_PRELOAD",
+    "LD_AUDIT",
+    "LD_DEBUG",
+    "LD_DEBUG_OUTPUT",
+    "LD_DYNAMIC_WEAK",
+    "LD_LIBRARY_PATH",
+    "LD_ORIGIN_PATH",
+    "LD_PRELOAD",
+    "LD_PROFILE",
+    "LD_SHOW_AUXV",
+    "LD_USE_LOAD_BIAS",
+    "LOCALDOMAIN",
+    "LOCPATH",
+    "MALLOC_CHECK_",
+    "MALLOC_CONF",
+    "MALLOC_TRACE",
+    "NIS_PATH",
+    "NLSPATH",
+    "RESOLV_HOST_CONF",
+    "RES_OPTIONS",
+    "TMPDIR",
+    "TZDIR",
   };
-  for (size_t i = 0; UNSAFE_VARIABLE_NAMES[i] != nullptr; ++i) {
-    if (env_match(name, UNSAFE_VARIABLE_NAMES[i]) != nullptr) {
+  for (const auto& unsafe_variable_name : UNSAFE_VARIABLE_NAMES) {
+    if (env_match(name, unsafe_variable_name) != nullptr) {
       return true;
     }
   }
