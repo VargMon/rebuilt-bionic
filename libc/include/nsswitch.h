@@ -1,5 +1,3 @@
-/*	$NetBSD: nsswitch.h,v 1.21 2011/07/17 20:54:34 joerg Exp $	*/
-
 /*-
  * Copyright (c) 1997, 1998, 1999, 2004 The NetBSD Foundation, Inc.
  * All rights reserved.

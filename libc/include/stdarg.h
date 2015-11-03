@@ -1,9 +1,9 @@
 #ifndef _STDARG_H
 #define _STDARG_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
 
 #define __NEED_va_list
 
@@ -18,8 +18,6 @@ extern "C" {
 #include <machine/stdarg.h>
 #endif
 
-#ifdef __cplusplus
-}
-#endif
+__END_DECLS
 
 #endif

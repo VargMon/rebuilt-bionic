@@ -1,4 +1,6 @@
-/* Public domain */
+/*
+ * Public domain
+ */
 #ifndef _CRYPT_H
 #define _CRYPT_H
 

@@ -1,5 +1,3 @@
-/*	$NetBSD: sethostent.c,v 1.20 2014/03/17 13:24:23 christos Exp $	*/
-
 /*
  * Copyright (c) 1985, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -30,14 +28,6 @@
  */
 
 #include <sys/cdefs.h>
-#if defined(LIBC_SCCS) && !defined(lint)
-#if 0
-static char sccsid[] = "@(#)sethostent.c	8.1 (Berkeley) 6/4/93";
-static char rcsid[] = "Id: sethostent.c,v 8.5 1996/09/28 06:51:07 vixie Exp ";
-#else
-__RCSID("$NetBSD: sethostent.c,v 1.20 2014/03/17 13:24:23 christos Exp $");
-#endif
-#endif /* LIBC_SCCS and not lint */
 
 #include "namespace.h"
 #include <sys/param.h>

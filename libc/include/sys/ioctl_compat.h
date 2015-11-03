@@ -1,5 +1,3 @@
-/*	$NetBSD: ioctl_compat.h,v 1.15 2005/12/03 17:10:46 christos Exp $	*/
-
 /*
  * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.

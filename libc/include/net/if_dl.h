@@ -1,5 +1,3 @@
-/*	$NetBSD: if_dl.h,v 1.18 2005/12/11 23:05:24 thorpej Exp $	*/
-
 /*
  * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.

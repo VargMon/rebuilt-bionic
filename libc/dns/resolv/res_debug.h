@@ -1,5 +1,3 @@
-/*	$NetBSD: res_debug.h,v 1.1.1.1 2004/05/20 17:18:55 christos Exp $	*/
-
 /*
  * Copyright (c) 2004 by Internet Systems Consortium, Inc. ("ISC")
  * Copyright (c) 1999 by Internet Software Consortium.

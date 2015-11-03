@@ -1,5 +1,3 @@
-/*	$NetBSD: if_ether.h,v 1.43 2006/11/24 01:04:30 rpaulo Exp $	*/
-
 /*
  * Copyright (c) 1982, 1986, 1993
  *	The Regents of the University of California.  All rights reserved.

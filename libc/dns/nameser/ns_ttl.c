@@ -1,5 +1,3 @@
-/*	$NetBSD: ns_ttl.c,v 1.8 2012/03/13 21:13:39 christos Exp $	*/
-
 /*
  * Copyright (c) 2004 by Internet Systems Consortium, Inc. ("ISC")
  * Copyright (c) 1996,1999 by Internet Software Consortium.
@@ -18,13 +16,6 @@
  */
 
 #include <sys/cdefs.h>
-#ifndef lint
-#ifdef notdef
-static const char rcsid[] = "Id: ns_ttl.c,v 1.4 2005/07/28 06:51:49 marka Exp";
-#else
-__RCSID("$NetBSD: ns_ttl.c,v 1.8 2012/03/13 21:13:39 christos Exp $");
-#endif
-#endif
 
 /* Import. */
 

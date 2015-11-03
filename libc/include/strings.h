@@ -1,17 +1,17 @@
-// directly from musl libc.. except for headers..
+/*
+ * Public domain.
+ */
+
 #ifndef	_STRINGS_H
 #define	_STRINGS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cdefs.h>
 
-
+__BEGIN_DECLS
 #define __NEED_size_t
 #define __NEED_locale_t
+#include <xlocale.h> /* for locale_t */
 #include <types.h>
-// for legacy
-#include <cdefs.h>
 
 #if defined(_GNU_SOURCE) || defined(_BSD_SOURCE) || defined(_POSIX_SOURCE) \
  || (defined(_POSIX_C_SOURCE) && _POSIX_C_SOURCE+0 < 200809L) \
@@ -35,8 +35,6 @@ int strncasecmp (const char *, const char *, size_t);
 int strcasecmp_l (const char *, const char *, locale_t);
 int strncasecmp_l (const char *, const char *, size_t, locale_t);
 
-#ifdef __cplusplus
-}
-#endif
+__END_DECLS
 
 #endif

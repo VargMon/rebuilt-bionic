@@ -1,10 +1,12 @@
+/*
+ * Public domain
+ */
 #ifndef _FANOTIFY_H
 #define _FANOTIFY_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <sys/cdefs.h>
 
+__BEGIN_DECLS
 struct fanotify_event_metadata {
 	unsigned event_len;
 	unsigned char vers;
@@ -66,8 +68,6 @@ struct fanotify_response {
 
 int fanotify_init(unsigned, unsigned);
 int fanotify_mark(int, unsigned, unsigned long long, int, const char *);
+__END_DECLS
 
-#ifdef __cplusplus
-}
-#endif
 #endif

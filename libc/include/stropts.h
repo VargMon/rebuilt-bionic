@@ -1,10 +1,13 @@
+/*
+ * Public domain.
+ */
 #ifndef _STROPTS_H
 #define _STROPTS_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <sys/cdefs.h>
+#include <sys/ioctl.h> /* for ioctl */
 
+__BEGIN_DECLS
 #define __SID		('S' << 8)
 
 #define I_NREAD		(__SID | 1)
@@ -130,10 +133,7 @@ struct str_list {
 };
 
 int isastream(int);
-int ioctl(int, int, ...);
 
-#ifdef __cplusplus
-}
-#endif
+__END_DECLS
 
 #endif

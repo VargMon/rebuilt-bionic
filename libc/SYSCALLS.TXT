@@ -397,7 +397,7 @@ int __clock_gettime:clock_gettime(clockid_t, timespec*) arm64,x86,x86_64
 int gettimeofday(timeval*, timezone*)                   arm,mips,mips64
 int __gettimeofday:gettimeofday(timeval*, timezone*)    arm64,x86,x86_64
 
-# SysV IPC
+# sysv ipc
 int     int ipc(unsigned int call, int first, int second, int third, void* ptr, long fifth) mips,x86
 int     semget(key_t key, int nsems, int semflg)  arm,arm64
 int     semop(int semid, struct sembuf* sops, unsigned nsops)  arm,arm64
@@ -413,4 +413,18 @@ int     msgget(key_t key, int msgflg) arm,arm64
 ssize_t msgrcv(int msqid, void* msgp, size_t msgsz, long int msgtyp, int msgflg) arm,arm64
 int     msgsnd(int msqid, const void* msgp, size_t msgsz, int msgflg) arm,arm64
 
+# mqueue stuff
+int	mq_close:close(mqd_t) x86,x86_64
+mqd_t	mq_open(const char *, int, ...)  x86,x86_64
+int	mq_unlink(const char *)  x86,x86_64
+ssize_t	mq_receive:mq_timedreceive(mqd_t, char *, size_t, unsigned *) x86,x86_64
+int	mq_send:mq_timedsend(mqd_t, const char *, size_t, unsigned) x86,x86_64
+ssize_t	mq_timedreceive(mqd_t, char *__restrict, size_t, unsigned *__restrict, const struct timespec *__restrict) x86,x86_64
+int	mq_timedsend(mqd_t, const char *, size_t, unsigned, const struct timespec *) x86,x86_64
+int	mq_notify(mqd_t, const struct sigevent *) x86,x86_64
+int	mq_getattr:mq_getsetattr(mqd_t, struct mq_attr *) x86,x86_64
+int	mq_setattr:mq_getsetattr(mqd_t, const struct mq_attr *__restrict, struct mq_attr *__restrict) x86,x86_64
 
+# fanotify
+int	fanotify_init(unsigned, unsigned) x86,x86_64
+int	fanotify_mark(int, unsigned, unsigned long long, int, const char *) x86,x86_64

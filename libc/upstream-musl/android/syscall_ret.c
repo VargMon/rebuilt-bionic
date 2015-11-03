@@ -1,5 +1,5 @@
 #include <errno.h>
-#include <private/bionic_syscall.h>
+#include <syscall.h>
 
 long __syscall_ret(unsigned long r)
 {

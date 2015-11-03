@@ -1,6 +1,3 @@
-/*	$OpenBSD: err.h,v 1.10 2006/01/06 18:53:04 millert Exp $	*/
-/*	$NetBSD: err.h,v 1.11 1994/10/26 00:55:52 cgd Exp $	*/
-
 /*-
  * Copyright (c) 1993
  *	The Regents of the University of California.  All rights reserved.

@@ -1,5 +1,3 @@
-/*	$OpenBSD: glue.h,v 1.4 2004/01/11 21:39:51 millert Exp $	*/
-
 /*-
  * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.

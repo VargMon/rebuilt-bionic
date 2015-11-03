@@ -1,7 +1,3 @@
-/* $NetBSD: ftw.h,v 1.1 2005/12/30 23:07:33 agc Exp $ */
-
-/*	From OpenBSD: ftw.h,v 1.1 2003/07/21 21:13:18 millert Exp 	*/
-
 /*
  * Copyright (c) 2003 Todd C. Miller <Todd.Miller@courtesan.com>
  *

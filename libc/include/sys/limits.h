@@ -1,4 +1,3 @@
-/* $OpenBSD: limits.h,v 1.6 2005/12/13 00:35:23 millert Exp $ */
 /*
  * Copyright (c) 2002 Marc Espie.
  *

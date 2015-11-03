@@ -1,5 +1,3 @@
-/*	$NetBSD: ttydefaults.h,v 1.16 2008/05/24 14:06:39 yamt Exp $	*/
-
 /*-
  * Copyright (c) 1982, 1986, 1993
  *	The Regents of the University of California.  All rights reserved.

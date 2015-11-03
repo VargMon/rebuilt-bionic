@@ -1,6 +1,3 @@
-/*	$OpenBSD: regex.h,v 1.6 2003/06/02 19:34:12 millert Exp $	*/
-/*	$NetBSD: regex.h,v 1.4.6.1 1996/06/10 18:57:07 explorer Exp $	*/
-
 /*-
  * Copyright (c) 1992 Henry Spencer.
  * Copyright (c) 1992, 1993

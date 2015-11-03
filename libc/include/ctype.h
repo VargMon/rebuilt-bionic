@@ -1,6 +1,3 @@
-/*	$OpenBSD: ctype.h,v 1.19 2005/12/13 00:35:22 millert Exp $	*/
-/*	$NetBSD: ctype.h,v 1.14 1994/10/26 00:55:47 cgd Exp $	*/
-
 /*
  * Copyright (c) 1989 The Regents of the University of California.
  * All rights reserved.

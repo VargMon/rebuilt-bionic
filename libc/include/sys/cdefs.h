@@ -1,5 +1,3 @@
-/*	$NetBSD: cdefs.h,v 1.58 2004/12/11 05:59:00 christos Exp $	*/
-
 /*
  * Copyright (c) 1991, 1993
  *	The Regents of the University of California.  All rights reserved.

@@ -1,5 +1,3 @@
-/*	$NetBSD: nameser.h,v 1.25 2009/04/12 17:07:34 christos Exp $	*/
-
 /*
  * Portions Copyright (C) 2004, 2005, 2008, 2009  Internet Systems Consortium, Inc. ("ISC")
  * Portions Copyright (C) 1996-2003  Internet Software Consortium.

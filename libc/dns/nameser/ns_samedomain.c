@@ -1,5 +1,3 @@
-/*	$NetBSD: ns_samedomain.c,v 1.8 2012/11/22 20:22:31 christos Exp $	*/
-
 /*
  * Copyright (c) 2004 by Internet Systems Consortium, Inc. ("ISC")
  * Copyright (c) 1995,1999 by Internet Software Consortium.
@@ -18,13 +16,6 @@
  */
 
 #include <sys/cdefs.h>
-#ifndef lint
-#ifdef notdef
-static const char rcsid[] = "Id: ns_samedomain.c,v 1.6 2005/04/27 04:56:40 sra Exp";
-#else
-__RCSID("$NetBSD: ns_samedomain.c,v 1.8 2012/11/22 20:22:31 christos Exp $");
-#endif
-#endif
 
 #include <sys/types.h>
 #include <arpa/nameser.h>

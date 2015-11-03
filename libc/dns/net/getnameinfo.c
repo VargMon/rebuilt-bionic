@@ -1,6 +1,3 @@
-/*	$NetBSD: getnameinfo.c,v 1.53 2012/09/26 23:13:00 christos Exp $	*/
-/*	$KAME: getnameinfo.c,v 1.45 2000/09/25 22:43:56 itojun Exp $	*/
-
 /*
  * Copyright (c) 2000 Ben Harris.
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
@@ -46,9 +43,6 @@
  */
 
 #include <sys/cdefs.h>
-#if defined(LIBC_SCCS) && !defined(lint)
-__RCSID("$NetBSD: getnameinfo.c,v 1.53 2012/09/26 23:13:00 christos Exp $");
-#endif /* LIBC_SCCS and not lint */
 
 #include <sys/types.h>
 #include <sys/socket.h>

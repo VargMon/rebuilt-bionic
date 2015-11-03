@@ -1,4 +1,3 @@
-/*	$OpenBSD: fread.c,v 1.12 2014/05/01 16:40:36 deraadt Exp $ */
 /*-
  * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.

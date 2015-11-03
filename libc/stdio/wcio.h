@@ -1,6 +1,3 @@
-/*	$OpenBSD: wcio.h,v 1.2 2013/04/17 17:40:35 tedu Exp $	*/
-/* $NetBSD: wcio.h,v 1.3 2003/01/18 11:30:00 thorpej Exp $ */
-
 /*-
  * Copyright (c)2001 Citrus Project,
  * All rights reserved.

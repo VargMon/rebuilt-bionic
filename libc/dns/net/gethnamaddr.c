@@ -1,5 +1,3 @@
-/*	$NetBSD: gethnamaddr.c,v 1.91 2014/06/19 15:08:18 christos Exp $	*/
-
 /*
  * ++Copyright++ 1985, 1988, 1993
  * -

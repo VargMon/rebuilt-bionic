@@ -1,6 +1,3 @@
-/*	$OpenBSD: fts.h,v 1.12 2009/08/27 16:19:27 millert Exp $	*/
-/*	$NetBSD: fts.h,v 1.5 1994/12/28 01:41:50 mycroft Exp $	*/
-
 /*
  * Copyright (c) 1989, 1993
  *	The Regents of the University of California.  All rights reserved.

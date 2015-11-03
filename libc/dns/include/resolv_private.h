@@ -1,5 +1,3 @@
-/*	$NetBSD: resolv.h,v 1.31 2005/12/26 19:01:47 perry Exp $	*/
-
 /*
  * Copyright (c) 1983, 1987, 1989
  *    The Regents of the University of California.  All rights reserved.

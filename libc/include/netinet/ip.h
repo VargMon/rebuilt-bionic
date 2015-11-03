@@ -1,6 +1,3 @@
-/*	$OpenBSD: ip.h,v 1.12 2006/04/27 02:19:32 tedu Exp $	*/
-/*	$NetBSD: ip.h,v 1.9 1995/05/15 01:22:44 cgd Exp $	*/
-
 /*
  * Copyright (c) 1982, 1986, 1993
  *	The Regents of the University of California.  All rights reserved.

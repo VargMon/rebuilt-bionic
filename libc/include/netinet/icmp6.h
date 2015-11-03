@@ -1,7 +1,3 @@
-/*	$NetBSD: icmp6.h,v 1.47 2013/07/01 12:43:15 christos Exp $	*/
-/*	$KAME: icmp6.h,v 1.84 2003/04/23 10:26:51 itojun Exp $	*/
-
-
 /*
  * Copyright (C) 1995, 1996, 1997, and 1998 WIDE Project.
  * All rights reserved.

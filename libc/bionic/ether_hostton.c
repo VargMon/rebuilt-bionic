@@ -34,7 +34,7 @@ int ether_hostton(const char *hostname, struct ether_addr *addr);
 #include <stdlib.h>
 #include <string.h>
 
-#include "ether_priv.h"
+#include "ether_private.h"
 #include "stub.h"
 
 static inline size_t min( size_t a, size_t b ) {

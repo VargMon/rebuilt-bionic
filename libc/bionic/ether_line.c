@@ -41,7 +41,7 @@ int ether_line(const char *line, struct ether_addr *addr, char *hostname);
 #include <assert.h>
 #endif
 
-#include "ether_priv.h"
+#include "ether_private.h"
 
 #define NAT         "[1-9]"
 #define NATP        "[0-9]"

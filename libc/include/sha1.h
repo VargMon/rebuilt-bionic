@@ -1,5 +1,3 @@
-/*	$NetBSD: sha1.h,v 1.13 2005/12/26 18:41:36 perry Exp $	*/
-
 /*
  * SHA-1 in C
  * By Steve Reid <steve@edmweb.com>

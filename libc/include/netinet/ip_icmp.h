@@ -1,6 +1,3 @@
-/*	$OpenBSD: ip_icmp.h,v 1.21 2005/07/31 03:30:55 pascoe Exp $	*/
-/*	$NetBSD: ip_icmp.h,v 1.10 1996/02/13 23:42:28 christos Exp $	*/
-
 /*
  * Copyright (c) 1982, 1986, 1993
  *	The Regents of the University of California.  All rights reserved.

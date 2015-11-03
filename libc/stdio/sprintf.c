@@ -1,4 +1,3 @@
-/*	$OpenBSD: sprintf.c,v 1.13 2005/10/10 12:00:52 espie Exp $ */
 /*-
  * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.

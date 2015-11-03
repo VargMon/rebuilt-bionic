@@ -1,5 +1,3 @@
-/*	$NetBSD: base64.c,v 1.8 2002/11/11 01:15:17 thorpej Exp $	*/
-
 /*
  * Copyright (c) 1996 by Internet Software Consortium.
  *
@@ -43,9 +41,6 @@
  */
 
 #include <sys/cdefs.h>
-#if defined(LIBC_SCCS) && !defined(lint)
-__RCSID("$NetBSD: base64.c,v 1.8 2002/11/11 01:15:17 thorpej Exp $");
-#endif /* LIBC_SCCS and not lint */
 
 #include <sys/types.h>
 #include <sys/param.h>
@@ -56,11 +51,8 @@ __RCSID("$NetBSD: base64.c,v 1.8 2002/11/11 01:15:17 thorpej Exp $");
 
 #include <assert.h>
 #include <ctype.h>
-#ifdef ANDROID_CHANGES
-#include "resolv_private.h"
-#else
+#include "resolv_private.h" /* XXX: ANDROID_CHANGES */
 #include <resolv.h>
-#endif
 #include <stdio.h>
 
 #include <stdlib.h>

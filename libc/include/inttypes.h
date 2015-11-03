@@ -1,5 +1,3 @@
-/*	$OpenBSD: inttypes.h,v 1.9 2006/01/15 00:47:51 millert Exp $	*/
-
 /*
  * Copyright (c) 1997, 2005 Todd C. Miller <Todd.Miller@courtesan.com>
  *

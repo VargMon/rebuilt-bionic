@@ -1,4 +1,3 @@
-/*	$OpenBSD: exit.c,v 1.12 2007/09/03 14:40:16 millert Exp $ */
 /*-
  * Copyright (c) 1990 The Regents of the University of California.
  * All rights reserved.

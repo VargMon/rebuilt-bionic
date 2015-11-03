@@ -16,6 +16,6 @@
 #ifndef _NET_IF_SLIP_H_
 #define _NET_IF_SLIP_H_
 
-#include <uapi/linux/if_slip.h>
+#include <linux/if_slip.h>
 
 #endif /* _NET_IF_SLIP_H_ */

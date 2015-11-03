@@ -1,5 +1,3 @@
-/*	$NetBSD: ns_netint.c,v 1.7 2012/03/13 21:13:39 christos Exp $	*/
-
 /*
  * Copyright (c) 2004 by Internet Systems Consortium, Inc. ("ISC")
  * Copyright (c) 1996,1999 by Internet Software Consortium.
@@ -18,13 +16,6 @@
  */
 
 #include <sys/cdefs.h>
-#ifndef lint
-#ifdef notdef
-static const char rcsid[] = "Id: ns_netint.c,v 1.3 2005/04/27 04:56:40 sra Exp";
-#else
-__RCSID("$NetBSD: ns_netint.c,v 1.7 2012/03/13 21:13:39 christos Exp $");
-#endif
-#endif
 
 /* Import. */
 

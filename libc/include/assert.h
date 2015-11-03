@@ -1,6 +1,3 @@
-/*	$OpenBSD: assert.h,v 1.12 2006/01/31 10:53:51 hshoexer Exp $	*/
-/*	$NetBSD: assert.h,v 1.6 1994/10/26 00:55:44 cgd Exp $	*/
-
 /*-
  * Copyright (c) 1992, 1993
  *	The Regents of the University of California.  All rights reserved.

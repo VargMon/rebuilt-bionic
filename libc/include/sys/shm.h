@@ -1,7 +1,7 @@
 #ifndef _HAVE_SYS_SHM_H_
 #define _HAVE_SYS_SHM_H_
 
- #include <linux/shm.h>
+#include <linux/shm.h>
 
 __BEGIN_DECLS
 

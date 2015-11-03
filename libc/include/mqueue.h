@@ -1,11 +1,12 @@
+/*
+ * Public domain
+ */
 #ifndef _MQUEUE_H
 #define _MQUEUE_H
-#ifdef __cplusplus
-extern "C" {
-#endif
 
-#include <features.h>
+#include <sys/cdefs.h>
 
+__BEGIN_DECLS
 #define __NEED_size_t
 #define __NEED_ssize_t
 #define __NEED_pthread_attr_t
@@ -29,8 +30,6 @@ int mq_setattr(mqd_t, const struct mq_attr *__restrict, struct mq_attr *__restri
 ssize_t mq_timedreceive(mqd_t, char *__restrict, size_t, unsigned *__restrict, const struct timespec *__restrict);
 int mq_timedsend(mqd_t, const char *, size_t, unsigned, const struct timespec *);
 int mq_unlink(const char *);
+__END_DECLS
 
-#ifdef __cplusplus
-}
-#endif
 #endif

@@ -1,6 +1,3 @@
-/*	$OpenBSD: limits.h,v 1.13 2005/12/31 19:29:38 millert Exp $	*/
-/*	$NetBSD: limits.h,v 1.7 1994/10/26 00:56:00 cgd Exp $	*/
-
 /*
  * Copyright (c) 1988 The Regents of the University of California.
  * All rights reserved.

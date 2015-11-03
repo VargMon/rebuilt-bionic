@@ -1,4 +1,3 @@
-/*	$OpenBSD: atexit.c,v 1.20 2014/07/11 09:51:37 kettenis Exp $ */
 /*
  * Copyright (c) 2002 Daniel Hartmeier
  * All rights reserved.

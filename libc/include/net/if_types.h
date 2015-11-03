@@ -1,5 +1,3 @@
-/*	$NetBSD: if_types.h,v 1.26 2012/08/05 21:21:41 wiz Exp $	*/
-
 /*
  * Copyright (c) 1989, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.

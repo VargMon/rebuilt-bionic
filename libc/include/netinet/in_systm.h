@@ -1,5 +1,3 @@
-/*	$NetBSD: in_systm.h,v 1.13 2005/12/10 23:36:23 elad Exp $	*/
-
 /*
  * Copyright (c) 1982, 1986, 1993
  *	The Regents of the University of California.  All rights reserved.
